@@ -28,6 +28,9 @@ def load_images() -> tuple[np.ndarray, ...]:
     img0 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH0), dtype=np.uint8), cv2.IMREAD_COLOR)
     img1 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH1), dtype=np.uint8), cv2.IMREAD_COLOR)
     img2 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img0 = cv2.resize(img0, (480, 270))
+    img1 = cv2.resize(img1, (480, 270))
+    img2 = cv2.resize(img2, (480, 270))
     return img0, img1, img2
 
 
