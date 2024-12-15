@@ -68,7 +68,6 @@ def softsplat(tenIn: torch.Tensor, tenFlow: torch.Tensor, tenMetric: torch.Tenso
 class softsplat_func(torch.autograd.Function):
     @staticmethod
     @torch.inference_mode()
-    @torch.amp.custom_fwd(device_type=device)
     def forward(ctx, tenIn, tenFlow):
         """
         Forward pass of the Softsplat function.
