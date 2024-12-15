@@ -1,3 +1,4 @@
+# type: ignore
 # torch fallback for softsplat inference
 # https://github.com/98mxr/GMFSS_Fortuna/pull/11/files
 # author: TNTwise

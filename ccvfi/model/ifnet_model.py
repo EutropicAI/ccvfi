@@ -1,3 +1,4 @@
+# type: ignore
 import torch
 import cv2
 import numpy as np
@@ -22,7 +23,7 @@ class IFNetModel(VFIBaseModel):
         model.eval().to(self.device)
         return model
 
-    def convert(self, param):
+    def convert(self, param) -> Any:
         return {
             k.replace("module.", ""): v
             for k, v in param.items()
@@ -42,7 +43,7 @@ class IFNetModel(VFIBaseModel):
         :return: an immediate frame between img0 and img1
         """
 
-        def _resize(img, _scale):
+        def _resize(img, _scale) -> np.ndarray:
             _h, _w, _ = img.shape
             while _h * _scale % 64 != 0:
                 _h += 1
@@ -50,7 +51,7 @@ class IFNetModel(VFIBaseModel):
                 _w += 1
             return cv2.resize(img, (_w, _h))
 
-        def _de_resize(img, ori_w, ori_h):
+        def _de_resize(img, ori_w, ori_h) -> np.ndarray:
             return cv2.resize(img, (ori_w, ori_h))
 
         h, w, c = img0.shape

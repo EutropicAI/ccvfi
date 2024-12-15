@@ -1,3 +1,4 @@
+# type: ignore
 #!/usr/bin/env python
 
 import collections
