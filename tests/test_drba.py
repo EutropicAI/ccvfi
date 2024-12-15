@@ -16,8 +16,7 @@ class Test_DRBA:
             model: VFIBaseModel = AutoModel.from_config(config=cfg, fp16=False, device=get_device())
             print(model.device)
 
-            imgOutputs, _ = model.inference(img0, img1, img2, [-1, -0.5], [0], [0.5, 1]
-                                            , False, False, 1.0, None)
+            imgOutputs, _ = model.inference(img0, img1, img2, [-1, -0.5], [0], [0.5, 1], False, False, 1.0, None)
 
             for i in range(len(imgOutputs)):
                 cv2.imwrite(str(ASSETS_PATH / f"test_out_{i}.jpg"), imgOutputs[i])

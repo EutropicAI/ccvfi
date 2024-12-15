@@ -44,9 +44,6 @@ class AutoModel:
             fp16=fp16,
             compile=compile,
             compile_backend=compile_backend,
-            tile=tile,
-            tile_pad=tile_pad,
-            pad_img=pad_img,
             model_dir=model_dir,
             gh_proxy=gh_proxy,
         )

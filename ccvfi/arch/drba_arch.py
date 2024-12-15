@@ -1,18 +1,22 @@
+# type: ignore
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ccvfi.arch.arch_utils.warplayer import warp
+
 from ccvfi.arch import ARCH_REGISTRY
+from ccvfi.arch.arch_utils.warplayer import warp
 from ccvfi.type import ArchType
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 @ARCH_REGISTRY.register(name=ArchType.DRBA)
 class DRBA(nn.Module):
-    def __init__(self,
-                 support_cupy=False,
-                 ):
+    def __init__(
+        self,
+        support_cupy=False,
+    ):
         super(DRBA, self).__init__()
         self.block0 = IFBlock(7 + 32, c=192)
         self.block1 = IFBlock(8 + 4 + 8 + 32, c=128)
@@ -22,16 +26,19 @@ class DRBA(nn.Module):
         self.encode = Head()
         if support_cupy:
             from ccvfi.arch.arch_utils.softsplat import softsplat as fwarp
+
             self.fwarp = fwarp
         else:
             from ccvfi.arch.arch_utils.softsplat_torch import softsplat as fwarp
+
             self.fwarp = fwarp
 
-    def inference(self, x, timestep=0.5, scale_list=[16, 8, 4, 2, 1], training=False, fastmode=True, ensemble=False):
-        if training == False:
-            channel = x.shape[1] // 2
-            img0 = x[:, :channel]
-            img1 = x[:, channel:]
+    def inference(self, x, timestep=0.5, scale_list=None, fastmode=True, ensemble=False):
+        if scale_list is None:
+            scale_list = [16, 8, 4, 2, 1]
+        channel = x.shape[1] // 2
+        img0 = x[:, :channel]
+        img1 = x[:, channel:]
         if not torch.is_tensor(timestep):
             timestep = (x[:, :1].clone() * 0 + 1) * timestep
         f0 = self.encode(img0[:, :3])
@@ -46,16 +53,19 @@ class DRBA(nn.Module):
         block = [self.block0, self.block1, self.block2, self.block3, self.block4]
         for i in range(5):
             if flow is None:
-                flow, mask, feat = block[i](torch.cat((img0[:, :3], img1[:, :3], f0, f1, timestep), 1), None,
-                                            scale=scale_list[i])
+                flow, mask, feat = block[i](
+                    torch.cat((img0[:, :3], img1[:, :3], f0, f1, timestep), 1), None, scale=scale_list[i]
+                )
                 if ensemble:
                     print("warning: ensemble is not supported since RIFEv4.21")
             else:
                 wf0 = warp(f0, flow[:, :2])
                 wf1 = warp(f1, flow[:, 2:4])
                 fd, m0, feat = block[i](
-                    torch.cat((warped_img0[:, :3], warped_img1[:, :3], wf0, wf1, timestep, mask, feat), 1), flow,
-                    scale=scale_list[i])
+                    torch.cat((warped_img0[:, :3], warped_img1[:, :3], wf0, wf1, timestep, mask, feat), 1),
+                    flow,
+                    scale=scale_list[i],
+                )
                 if ensemble:
                     print("warning: ensemble is not supported since RIFEv4.21")
                 else:
@@ -67,16 +77,16 @@ class DRBA(nn.Module):
             warped_img1 = warp(img1, flow[:, 2:4])
             merged.append((warped_img0, warped_img1))
         mask = torch.sigmoid(mask)
-        merged[4] = (warped_img0 * mask + warped_img1 * (1 - mask))
+        merged[4] = warped_img0 * mask + warped_img1 * (1 - mask)
         if not fastmode:
-            print('contextnet is removed')
-            '''
+            print("contextnet is removed")
+            """
             c0 = self.contextnet(img0, flow[:, :2])
             c1 = self.contextnet(img1, flow[:, 2:4])
             tmp = self.unet(img0, img1, warped_img0, warped_img1, mask, flow, c0, c1)
             res = tmp[:, :3] * 2 - 1
             merged[4] = torch.clamp(merged[4] + res, 0, 1)
-            '''
+            """
         return merged[4], flow_list
 
     def calc_flow(self, a, b, _scale):
@@ -88,16 +98,16 @@ class DRBA(nn.Module):
         flow50, flow51 = flow[:, :2], flow[:, 2:]
 
         # only need forward direction flow
-        flow05_primary = self.fwarp(flow51, flow50, None, 'avg')
-        flow15_primary = self.fwarp(flow50, flow51, None, 'avg')
+        flow05_primary = self.fwarp(flow51, flow50, None, "avg")
+        flow15_primary = self.fwarp(flow50, flow51, None, "avg")
 
         # qvi
         # flow05, norm2 = warp(flow50, flow50)
         # flow05[norm2]...
         # flow05 = -flow05
 
-        flow05_secondary = -self.fwarp(flow50, flow50, None, 'avg')
-        flow15_secondary = -self.fwarp(flow51, flow51, None, 'avg')
+        flow05_secondary = -self.fwarp(flow50, flow50, None, "avg")
+        flow15_secondary = -self.fwarp(flow51, flow51, None, "avg")
 
         _flow01_primary = flow05_primary * 2
         _flow10_primary = flow15_primary * 2
@@ -110,11 +120,9 @@ class DRBA(nn.Module):
     # Flow distance calculator
     def distance_calculator(self, _x):
         u, v = _x[:, 0:1], _x[:, 1:]
-        return torch.sqrt(u ** 2 + v ** 2)
+        return torch.sqrt(u**2 + v**2)
 
     def forward(self, _I0, _I1, _I2, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
-
-
         flow10_p, flow01_p, flow01_s, flow10_s = self.calc_flow(_I1, _I0, _scale) if not _reuse else _reuse
         flow12_p, flow21_p, flow12_s, flow21_s = self.calc_flow(_I1, _I2, _scale)
 
@@ -137,15 +145,23 @@ class DRBA(nn.Module):
             # To align it with I0 and I2, we need to warp the drm maps.
             # Note: 1. To reverse the direction of the drm map, use 1 - drm and then warp it.
             # 2. For RIFE, drm should be aligned with the time corresponding to the intermediate frame.
-            _drm01r_p = self.fwarp(1 - drm10_p, flow10_p * ((1 - drm10_p) * 2) * _t, None, strMode='avg')
-            _drm21r_p = self.fwarp(1 - drm12_p, flow12_p * ((1 - drm12_p) * 2) * _t, None, strMode='avg')
-            _drm01r_s = self.fwarp(1 - drm10_s, flow10_s * ((1 - drm10_s) * 2) * _t, None, strMode='avg')
-            _drm21r_s = self.fwarp(1 - drm12_s, flow12_s * ((1 - drm12_s) * 2) * _t, None, strMode='avg')
+            _drm01r_p = self.fwarp(1 - drm10_p, flow10_p * ((1 - drm10_p) * 2) * _t, None, strMode="avg")
+            _drm21r_p = self.fwarp(1 - drm12_p, flow12_p * ((1 - drm12_p) * 2) * _t, None, strMode="avg")
+            _drm01r_s = self.fwarp(1 - drm10_s, flow10_s * ((1 - drm10_s) * 2) * _t, None, strMode="avg")
+            _drm21r_s = self.fwarp(1 - drm12_s, flow12_s * ((1 - drm12_s) * 2) * _t, None, strMode="avg")
 
-            self.warped_ones_mask01r_p = self.fwarp(ones_mask, flow10_p * ((1 - _drm01r_p) * 2) * _t, None, strMode='avg')
-            self.warped_ones_mask21r_p = self.fwarp(ones_mask, flow12_p * ((1 - _drm21r_p) * 2) * _t, None, strMode='avg')
-            self.warped_ones_mask01r_s = self.fwarp(ones_mask, flow10_s * ((1 - _drm01r_s) * 2) * _t, None, strMode='avg')
-            self.warped_ones_mask21r_s = self.fwarp(ones_mask, flow12_s * ((1 - _drm21r_s) * 2) * _t, None, strMode='avg')
+            self.warped_ones_mask01r_p = self.fwarp(
+                ones_mask, flow10_p * ((1 - _drm01r_p) * 2) * _t, None, strMode="avg"
+            )
+            self.warped_ones_mask21r_p = self.fwarp(
+                ones_mask, flow12_p * ((1 - _drm21r_p) * 2) * _t, None, strMode="avg"
+            )
+            self.warped_ones_mask01r_s = self.fwarp(
+                ones_mask, flow10_s * ((1 - _drm01r_s) * 2) * _t, None, strMode="avg"
+            )
+            self.warped_ones_mask21r_s = self.fwarp(
+                ones_mask, flow12_s * ((1 - _drm21r_s) * 2) * _t, None, strMode="avg"
+            )
 
             holes01r_p = self.warped_ones_mask01r_p < 0.999
             holes21r_p = self.warped_ones_mask21r_p < 0.999
@@ -162,29 +178,32 @@ class DRBA(nn.Module):
             _drm01r_p[holes01r] = (1 - drm10_p)[holes01r]
             _drm21r_p[holes21r] = (1 - drm12_p)[holes21r]
 
-            _drm01r_p, _drm21r_p = map(lambda x: torch.nn.functional.interpolate(x, size=_I0.shape[2:], mode='bilinear',
-                                                                                 align_corners=False),
-                                       [_drm01r_p, _drm21r_p])
+            _drm01r_p = torch.nn.functional.interpolate(
+                _drm01r_p, size=_I0.shape[2:], mode="bilinear", align_corners=False
+            )
+            _drm21r_p = torch.nn.functional.interpolate(
+                _drm21r_p, size=_I0.shape[2:], mode="bilinear", align_corners=False
+            )
 
             return _drm01r_p, _drm21r_p
 
-        output1, output2 = list(), list()
+        output1, output2 = [], []
 
         if _left_scene:
             for _ in minus_t:
                 zero_t = np.append(zero_t, 0)
-            minus_t = list()
+            minus_t = []
 
         if _right_scene:
             for _ in plus_t:
                 zero_t = np.append(zero_t, 0)
-            plus_t = list()
+            plus_t = []
 
         disable_drm = False
         if (_left_scene and not _right_scene) or (not _left_scene and _right_scene):
             drm01r, drm21r = (ones_mask.clone() * 0.5 for _ in range(2))
-            drm01r, drm21r = map(lambda x: torch.nn.functional.interpolate(x, size=_I0.shape[2:], mode='bilinear',
-                                                                           align_corners=False), [drm01r, drm21r])
+            drm01r = torch.nn.functional.interpolate(drm01r, size=_I0.shape[2:], mode="bilinear", align_corners=False)
+            drm21r = torch.nn.functional.interpolate(drm21r, size=_I0.shape[2:], mode="bilinear", align_corners=False)
             disable_drm = True
 
         for t in minus_t:
@@ -194,8 +213,13 @@ class DRBA(nn.Module):
                 continue
             if not disable_drm:
                 drm01r, _ = calc_drm_rife(t)
-            output1.append(self.inference(torch.cat((_I1, _I0), 1), timestep=t * (2 * drm01r),
-                                 scale_list=[16 / _scale, 8 / _scale, 4 / _scale, 2 / _scale, 1 / _scale])[0])
+            output1.append(
+                self.inference(
+                    torch.cat((_I1, _I0), 1),
+                    timestep=t * (2 * drm01r),
+                    scale_list=[16 / _scale, 8 / _scale, 4 / _scale, 2 / _scale, 1 / _scale],
+                )[0]
+            )
         for _ in zero_t:
             output1.append(_I1)
         for t in plus_t:
@@ -204,28 +228,42 @@ class DRBA(nn.Module):
                 continue
             if not disable_drm:
                 _, drm21r = calc_drm_rife(t)
-            output2.append(self.inference(torch.cat((_I1, _I2), 1), timestep=t * (2 * drm21r),
-                                 scale_list=[16 / _scale, 8 / _scale, 4 / _scale, 2 / _scale, 1 / _scale])[0])
+            output2.append(
+                self.inference(
+                    torch.cat((_I1, _I2), 1),
+                    timestep=t * (2 * drm21r),
+                    scale_list=[16 / _scale, 8 / _scale, 4 / _scale, 2 / _scale, 1 / _scale],
+                )[0]
+            )
 
         _output = output1 + output2
 
         # next flow10, flow01 = reverse(current flow12, flow21)
         return _output, (flow21_p, flow12_p, flow21_s, flow12_s)
 
+
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                  padding=padding, dilation=dilation, bias=True),
-        nn.LeakyReLU(0.2, True)
+        nn.Conv2d(
+            in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, bias=True
+        ),
+        nn.LeakyReLU(0.2, True),
     )
 
 
 def conv_bn(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                  padding=padding, dilation=dilation, bias=False),
+        nn.Conv2d(
+            in_planes,
+            out_planes,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=False,
+        ),
         nn.BatchNorm2d(out_planes),
-        nn.LeakyReLU(0.2, True)
+        nn.LeakyReLU(0.2, True),
     )
 
 
@@ -254,8 +292,7 @@ class Head(nn.Module):
 class ResConv(nn.Module):
     def __init__(self, c, dilation=1):
         super(ResConv, self).__init__()
-        self.conv = nn.Conv2d(c, c, 3, 1, dilation, dilation=dilation, groups=1 \
-                              )
+        self.conv = nn.Conv2d(c, c, 3, 1, dilation, dilation=dilation, groups=1)
         self.beta = nn.Parameter(torch.ones((1, c, 1, 1)), requires_grad=True)
         self.relu = nn.LeakyReLU(0.2, True)
 
@@ -280,15 +317,12 @@ class IFBlock(nn.Module):
             ResConv(c),
             ResConv(c),
         )
-        self.lastconv = nn.Sequential(
-            nn.ConvTranspose2d(c, 4 * 13, 4, 2, 1),
-            nn.PixelShuffle(2)
-        )
+        self.lastconv = nn.Sequential(nn.ConvTranspose2d(c, 4 * 13, 4, 2, 1), nn.PixelShuffle(2))
 
     def forward(self, x, flow=None, scale=1):
-        x = F.interpolate(x, scale_factor=1. / scale, mode="bilinear", align_corners=False)
+        x = F.interpolate(x, scale_factor=1.0 / scale, mode="bilinear", align_corners=False)
         if flow is not None:
-            flow = F.interpolate(flow, scale_factor=1. / scale, mode="bilinear", align_corners=False) * 1. / scale
+            flow = F.interpolate(flow, scale_factor=1.0 / scale, mode="bilinear", align_corners=False) * 1.0 / scale
             x = torch.cat((x, flow), 1)
         feat = self.conv0(x)
         feat = self.convblock(feat)

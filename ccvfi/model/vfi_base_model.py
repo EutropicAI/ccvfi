@@ -1,5 +1,7 @@
 from typing import Any
+
 import torch
+
 from ccvfi.cache_models import load_file_from_url
 from ccvfi.type import BaseConfig, BaseModelInterface
 

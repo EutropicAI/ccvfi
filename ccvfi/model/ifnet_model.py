@@ -1,10 +1,12 @@
-import torch
+# type: ignore
+from typing import Any
+
 import cv2
 import numpy as np
+import torch
 from torchvision import transforms
-from typing import Any
+
 from ccvfi.arch import IFNet
-from ccvfi.config import IFNetConfig
 from ccvfi.model import MODEL_REGISTRY
 from ccvfi.model.vfi_base_model import VFIBaseModel
 from ccvfi.type import ModelType
@@ -13,7 +15,7 @@ from ccvfi.type import ModelType
 @MODEL_REGISTRY.register(name=ModelType.IFNet)
 class IFNetModel(VFIBaseModel):
     def load_model(self) -> Any:
-        cfg: IFNetConfig = self.config
+        # cfg: IFNetConfig = self.config
         state_dict = self.get_state_dict()
 
         model = IFNet()
@@ -22,12 +24,8 @@ class IFNetModel(VFIBaseModel):
         model.eval().to(self.device)
         return model
 
-    def convert(self, param):
-        return {
-            k.replace("module.", ""): v
-            for k, v in param.items()
-            if "module." in k
-        }
+    def convert(self, param) -> Any:
+        return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
     @torch.inference_mode()  # type: ignore
     def inference(self, img0: np.ndarray, img1: np.ndarray, timestep: float, scale: float) -> np.ndarray:
@@ -42,7 +40,7 @@ class IFNetModel(VFIBaseModel):
         :return: an immediate frame between img0 and img1
         """
 
-        def _resize(img, _scale):
+        def _resize(img, _scale) -> np.ndarray:
             _h, _w, _ = img.shape
             while _h * _scale % 64 != 0:
                 _h += 1
@@ -50,7 +48,7 @@ class IFNetModel(VFIBaseModel):
                 _w += 1
             return cv2.resize(img, (_w, _h))
 
-        def _de_resize(img, ori_w, ori_h):
+        def _de_resize(img, ori_w, ori_h) -> np.ndarray:
             return cv2.resize(img, (ori_w, ori_h))
 
         h, w, c = img0.shape

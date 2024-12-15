@@ -1,9 +1,9 @@
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
-import torch
 import numpy as np
+import torch
 
 from ccvfi.util.device import DEFAULT_DEVICE
 
@@ -77,8 +77,8 @@ class BaseModelInterface(ABC):
 
     @abstractmethod
     @torch.inference_mode()  # type: ignore
-    def inference(self, *args) -> np.ndarray:
+    def inference(self, *args: Any) -> np.ndarray:
         raise NotImplementedError
 
-    def __call__(self, *args) -> np.ndarray:
+    def __call__(self, *args: Any) -> np.ndarray:
         return self.inference(*args)

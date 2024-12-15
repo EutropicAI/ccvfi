@@ -24,7 +24,7 @@ AutoConfig.register(cfg)
 @AutoModel.register(name=model_name)
 class TESTMODEL(VFIBaseModel):
     def load_model(self) -> Any:
-        cfg: IFNetConfig = self.config
+        # cfg: IFNetConfig = self.config
         state_dict = self.get_state_dict()
 
         model = IFNet()
@@ -34,11 +34,7 @@ class TESTMODEL(VFIBaseModel):
         return model
 
     def convert(self, param):
-        return {
-            k.replace("module.", ""): v
-            for k, v in param.items()
-            if "module." in k
-        }
+        return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
 
 model: TESTMODEL = AutoModel.from_pretrained(cfg_name)

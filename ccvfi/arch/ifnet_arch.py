@@ -1,11 +1,14 @@
+# type: ignore
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ccvfi.arch.arch_utils.warplayer import warp
+
 from ccvfi.arch import ARCH_REGISTRY
+from ccvfi.arch.arch_utils.warplayer import warp
 from ccvfi.type import ArchType
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 @ARCH_REGISTRY.register(name=ArchType.IFNet)
 class IFNet(nn.Module):
@@ -18,11 +21,12 @@ class IFNet(nn.Module):
         self.block4 = IFBlock(8 + 4 + 8 + 32, c=32)
         self.encode = Head()
 
-    def forward(self, x, timestep=0.5, scale_list=[16, 8, 4, 2, 1], training=False, fastmode=True, ensemble=False):
-        if training == False:
-            channel = x.shape[1] // 2
-            img0 = x[:, :channel]
-            img1 = x[:, channel:]
+    def forward(self, x, timestep=0.5, scale_list=None, fastmode=True, ensemble=False):
+        if scale_list is None:
+            scale_list = [16, 8, 4, 2, 1]
+        channel = x.shape[1] // 2
+        img0 = x[:, :channel]
+        img1 = x[:, channel:]
         if not torch.is_tensor(timestep):
             timestep = (x[:, :1].clone() * 0 + 1) * timestep
         f0 = self.encode(img0[:, :3])
@@ -37,16 +41,19 @@ class IFNet(nn.Module):
         block = [self.block0, self.block1, self.block2, self.block3, self.block4]
         for i in range(5):
             if flow is None:
-                flow, mask, feat = block[i](torch.cat((img0[:, :3], img1[:, :3], f0, f1, timestep), 1), None,
-                                            scale=scale_list[i])
+                flow, mask, feat = block[i](
+                    torch.cat((img0[:, :3], img1[:, :3], f0, f1, timestep), 1), None, scale=scale_list[i]
+                )
                 if ensemble:
                     print("warning: ensemble is not supported since RIFEv4.21")
             else:
                 wf0 = warp(f0, flow[:, :2])
                 wf1 = warp(f1, flow[:, 2:4])
                 fd, m0, feat = block[i](
-                    torch.cat((warped_img0[:, :3], warped_img1[:, :3], wf0, wf1, timestep, mask, feat), 1), flow,
-                    scale=scale_list[i])
+                    torch.cat((warped_img0[:, :3], warped_img1[:, :3], wf0, wf1, timestep, mask, feat), 1),
+                    flow,
+                    scale=scale_list[i],
+                )
                 if ensemble:
                     print("warning: ensemble is not supported since RIFEv4.21")
                 else:
@@ -58,32 +65,41 @@ class IFNet(nn.Module):
             warped_img1 = warp(img1, flow[:, 2:4])
             merged.append((warped_img0, warped_img1))
         mask = torch.sigmoid(mask)
-        merged[4] = (warped_img0 * mask + warped_img1 * (1 - mask))
+        merged[4] = warped_img0 * mask + warped_img1 * (1 - mask)
         if not fastmode:
-            print('contextnet is removed')
-            '''
+            print("contextnet is removed")
+            """
             c0 = self.contextnet(img0, flow[:, :2])
             c1 = self.contextnet(img1, flow[:, 2:4])
             tmp = self.unet(img0, img1, warped_img0, warped_img1, mask, flow, c0, c1)
             res = tmp[:, :3] * 2 - 1
             merged[4] = torch.clamp(merged[4] + res, 0, 1)
-            '''
+            """
         return merged[4]
+
 
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                  padding=padding, dilation=dilation, bias=True),
-        nn.LeakyReLU(0.2, True)
+        nn.Conv2d(
+            in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, bias=True
+        ),
+        nn.LeakyReLU(0.2, True),
     )
 
 
 def conv_bn(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
-                  padding=padding, dilation=dilation, bias=False),
+        nn.Conv2d(
+            in_planes,
+            out_planes,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            bias=False,
+        ),
         nn.BatchNorm2d(out_planes),
-        nn.LeakyReLU(0.2, True)
+        nn.LeakyReLU(0.2, True),
     )
 
 
@@ -112,8 +128,7 @@ class Head(nn.Module):
 class ResConv(nn.Module):
     def __init__(self, c, dilation=1):
         super(ResConv, self).__init__()
-        self.conv = nn.Conv2d(c, c, 3, 1, dilation, dilation=dilation, groups=1 \
-                              )
+        self.conv = nn.Conv2d(c, c, 3, 1, dilation, dilation=dilation, groups=1)
         self.beta = nn.Parameter(torch.ones((1, c, 1, 1)), requires_grad=True)
         self.relu = nn.LeakyReLU(0.2, True)
 
@@ -138,15 +153,12 @@ class IFBlock(nn.Module):
             ResConv(c),
             ResConv(c),
         )
-        self.lastconv = nn.Sequential(
-            nn.ConvTranspose2d(c, 4 * 13, 4, 2, 1),
-            nn.PixelShuffle(2)
-        )
+        self.lastconv = nn.Sequential(nn.ConvTranspose2d(c, 4 * 13, 4, 2, 1), nn.PixelShuffle(2))
 
     def forward(self, x, flow=None, scale=1):
-        x = F.interpolate(x, scale_factor=1. / scale, mode="bilinear", align_corners=False)
+        x = F.interpolate(x, scale_factor=1.0 / scale, mode="bilinear", align_corners=False)
         if flow is not None:
-            flow = F.interpolate(flow, scale_factor=1. / scale, mode="bilinear", align_corners=False) * 1. / scale
+            flow = F.interpolate(flow, scale_factor=1.0 / scale, mode="bilinear", align_corners=False) * 1.0 / scale
             x = torch.cat((x, flow), 1)
         feat = self.conv0(x)
         feat = self.convblock(feat)

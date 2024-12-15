@@ -18,6 +18,6 @@ class Test_IFNet:
 
             imgOut = model.inference(img0, img1, timestep=0.5, scale=1.0)
 
-            cv2.imwrite(str(ASSETS_PATH / f"test_out.jpg"), imgOut)
+            cv2.imwrite(str(ASSETS_PATH / "test_out.jpg"), imgOut)
 
             assert calculate_image_similarity(img0, imgOut)

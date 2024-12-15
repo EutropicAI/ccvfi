@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 
 from ccvfi.config import CONFIG_REGISTRY
 from ccvfi.type import ArchType, BaseConfig, ConfigType, ModelType

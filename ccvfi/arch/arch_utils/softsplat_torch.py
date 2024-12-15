@@ -1,3 +1,4 @@
+# type: ignore
 # torch fallback for softsplat inference
 # https://github.com/98mxr/GMFSS_Fortuna/pull/11/files
 # author: TNTwise
@@ -16,10 +17,9 @@ torch.set_grad_enabled(False)
 
 ##########################################################
 
+
 @torch.inference_mode()
-def softsplat(
-        tenIn: torch.Tensor, tenFlow: torch.Tensor, tenMetric: torch.Tensor, strMode: str
-):
+def softsplat(tenIn: torch.Tensor, tenFlow: torch.Tensor, tenMetric: torch.Tensor, strMode: str):
     mode_parts = strMode.split("-")
     mode_main = mode_parts[0]
     mode_sub = mode_parts[1] if len(mode_parts) > 1 else None
@@ -53,9 +53,7 @@ def softsplat(
         normalize_modes = {
             None: lambda x: x + 0.0000001,
             "addeps": lambda x: x + 0.0000001,
-            "zeroeps": lambda x: torch.where(
-                x == 0.0, torch.tensor(1.0, device=x.device), x
-            ),
+            "zeroeps": lambda x: torch.where(x == 0.0, torch.tensor(1.0, device=x.device), x),
             "clipeps": lambda x: x.clip(0.0000001, None),
         }
 
@@ -95,11 +93,13 @@ class softsplat_func(torch.autograd.Function):
             gridY, gridX = torch.meshgrid(
                 torch.arange(H, device=device, dtype=origdtype),
                 torch.arange(W, device=device, dtype=origdtype),
-                indexing='ij'
+                indexing="ij",
             )  # [H, W]
             # Cache the grids
             grid_cache[key] = (
-            gridY.unsqueeze(0).unsqueeze(0).expand(N, 1, H, W), gridX.unsqueeze(0).unsqueeze(0).expand(N, 1, H, W))
+                gridY.unsqueeze(0).unsqueeze(0).expand(N, 1, H, W),
+                gridX.unsqueeze(0).unsqueeze(0).expand(N, 1, H, W),
+            )
 
         if key not in batch_cache:
             batch_cache[key] = torch.arange(N, device=device).view(N, 1, 1).expand(N, H, W).reshape(-1)
@@ -177,6 +177,7 @@ class softsplat_func(torch.autograd.Function):
         tenOut = tenOut_flat.view(N, H, W, C).permute(0, 3, 1, 2)
 
         return tenOut
+
     # end
 
     # end

@@ -1,50 +1,55 @@
-import torch
+# type: ignore
+from typing import Any, Union
+
 import cv2
 import numpy as np
+import torch
+from numpy import ndarray
 from torchvision import transforms
-from typing import Any, Tuple
+
 from ccvfi.arch import DRBA
-from ccvfi.config import DRBAConfig
-from ccvfi.model import MODEL_REGISTRY
-from ccvfi.model import VFIBaseModel
+from ccvfi.model import MODEL_REGISTRY, VFIBaseModel
 from ccvfi.type import ModelType
 
 
 @MODEL_REGISTRY.register(name=ModelType.DRBA)
 class DRBAModel(VFIBaseModel):
-
     def load_model(self) -> Any:
-        cfg: DRBAConfig = self.config
+        # cfg: DRBAConfig = self.config
         state_dict = self.get_state_dict()
 
         HAS_CUDA = True
         try:
             import cupy
-            if cupy.cuda.get_cuda_path() == None:
+
+            if cupy.cuda.get_cuda_path() is None:
                 HAS_CUDA = False
         except Exception:
             HAS_CUDA = False
 
-        model = DRBA(
-            support_cupy=HAS_CUDA
-        )
+        model = DRBA(support_cupy=HAS_CUDA)
 
         model.load_state_dict(self.convert(state_dict), strict=False)
         model.eval().to(self.device)
         return model
 
-    def convert(self, param):
-        return {
-            k.replace("module.", ""): v
-            for k, v in param.items()
-            if "module." in k
-        }
+    def convert(self, param) -> Any:
+        return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
     @torch.inference_mode()  # type: ignore
-    def inference(self, img0: np.ndarray, img1: np.ndarray, img2: np.ndarray,
-                  minus_t: list[float, ...], zero_t: list[float, ...], plus_t: list[float, ...],
-                  left_scene_change: bool, right_scene_change: bool, scale: float,
-                  reuse: Any) -> tuple[tuple[None, ...], Any]:
+    def inference(
+        self,
+        img0: np.ndarray,
+        img1: np.ndarray,
+        img2: np.ndarray,
+        minus_t: list[float],
+        zero_t: list[float],
+        plus_t: list[float],
+        left_scene_change: bool,
+        right_scene_change: bool,
+        scale: float,
+        reuse: Any,
+    ) -> tuple[tuple[Union[ndarray, ndarray], ...], Any]:
         """
         Inference with the model
 
@@ -63,7 +68,7 @@ class DRBAModel(VFIBaseModel):
         :return: All immediate frames between img0~img2(May contain img0, img1, img2) and reusable contents.
         """
 
-        def _resize(img, _scale):
+        def _resize(img, _scale) -> np.ndarray:
             _h, _w, _ = img.shape
             while _h * _scale % 64 != 0:
                 _h += 1
@@ -71,7 +76,7 @@ class DRBAModel(VFIBaseModel):
                 _w += 1
             return cv2.resize(img, (_w, _h))
 
-        def _de_resize(img, ori_w, ori_h):
+        def _de_resize(img, ori_w, ori_h) -> np.ndarray:
             return cv2.resize(img, (ori_w, ori_h))
 
         h, w, c = img0.shape
@@ -85,10 +90,11 @@ class DRBAModel(VFIBaseModel):
         img1 = transforms.ToTensor()(img1).unsqueeze(0).to(self.device)
         img2 = transforms.ToTensor()(img2).unsqueeze(0).to(self.device)
 
-        results, reuse = self.model(img0, img1, img2, minus_t, zero_t, plus_t, left_scene_change, right_scene_change,
-                                    scale, reuse)
+        results, reuse = self.model(
+            img0, img1, img2, minus_t, zero_t, plus_t, left_scene_change, right_scene_change, scale, reuse
+        )
 
-        def _convert(result):
+        def _convert(result) -> np.ndarray:
             result = result.squeeze(0).permute(1, 2, 0).cpu().numpy()
             result = (result * 255).clip(0, 255).astype("uint8")
 
