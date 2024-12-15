@@ -15,7 +15,6 @@ from ccvfi.type import ModelType
 @MODEL_REGISTRY.register(name=ModelType.IFNet)
 class IFNetModel(VFIBaseModel):
     def load_model(self) -> Any:
-        # cfg: IFNetConfig = self.config
         state_dict = self.get_state_dict()
 
         model = IFNet()

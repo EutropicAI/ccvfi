@@ -3,12 +3,13 @@ import cv2
 from ccvfi import AutoConfig, AutoModel, BaseConfig, ConfigType
 from ccvfi.model import VFIBaseModel
 
-from .util import ASSETS_PATH, calculate_image_similarity, get_device, load_images
+from .util import ASSETS_PATH, calculate_image_similarity, get_device, load_eval_images, load_images
 
 
 class Test_DRBA:
     def test_official(self) -> None:
         img0, img1, img2 = load_images()
+        eval_imgs = load_eval_images()
 
         for k in [ConfigType.DRBA_IFNet]:
             print(f"Testing {k}")
@@ -21,4 +22,4 @@ class Test_DRBA:
             for i in range(len(imgOutputs)):
                 cv2.imwrite(str(ASSETS_PATH / f"test_out_{i}.jpg"), imgOutputs[i])
 
-                assert calculate_image_similarity(img0, imgOutputs[i])
+                assert calculate_image_similarity(eval_imgs[i], imgOutputs[i])

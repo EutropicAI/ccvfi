@@ -11,6 +11,7 @@ def test_auto_class_register() -> None:
 
     cfg = IFNetConfig(
         name=cfg_name,
+        model=model_name,
         url="https://github.com/routineLife1/ccvfi/releases/download/weights/IFNet_v426_heavy.pkl",
     )
 

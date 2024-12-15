@@ -16,6 +16,12 @@ ASSETS_PATH = Path(__file__).resolve().parent.parent.absolute() / "assets"
 TEST_IMG_PATH0 = ASSETS_PATH / "test_i0.png"
 TEST_IMG_PATH1 = ASSETS_PATH / "test_i1.png"
 TEST_IMG_PATH2 = ASSETS_PATH / "test_i2.png"
+EVAL_IMG_PATH = ASSETS_PATH / "test_out.jpg"
+EVAL_IMG_PATH0 = ASSETS_PATH / "test_out_0.jpg"
+EVAL_IMG_PATH1 = ASSETS_PATH / "test_out_1.jpg"
+EVAL_IMG_PATH2 = ASSETS_PATH / "test_out_2.jpg"
+EVAL_IMG_PATH3 = ASSETS_PATH / "test_out_3.jpg"
+EVAL_IMG_PATH4 = ASSETS_PATH / "test_out_4.jpg"
 
 
 def get_device() -> torch.device:
@@ -31,10 +37,31 @@ def load_images() -> tuple[np.ndarray, ...]:
     img0 = cv2.resize(img0, (480, 270))
     img1 = cv2.resize(img1, (480, 270))
     img2 = cv2.resize(img2, (480, 270))
+
     return img0, img1, img2
 
 
-def calculate_image_similarity(image1: np.ndarray, image2: np.ndarray, similarity: float = 0.5) -> bool:
+def load_eval_images() -> tuple[np.ndarray, ...]:
+    img0 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH0), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img1 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH1), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img2 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img3 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH3), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img4 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH4), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img0 = cv2.resize(img0, (480, 270))
+    img1 = cv2.resize(img1, (480, 270))
+    img2 = cv2.resize(img2, (480, 270))
+    img3 = cv2.resize(img3, (480, 270))
+    img4 = cv2.resize(img4, (480, 270))
+    return img0, img1, img2, img3, img4
+
+
+def load_eval_image() -> np.ndarray:
+    img = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH), dtype=np.uint8), cv2.IMREAD_COLOR)
+    img = cv2.resize(img, (480, 270))
+    return img
+
+
+def calculate_image_similarity(image1: np.ndarray, image2: np.ndarray, similarity: float = 0.8) -> bool:
     """
     calculate image similarity, check VFI is correct
 

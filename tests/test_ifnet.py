@@ -3,12 +3,13 @@ import cv2
 from ccvfi import AutoConfig, AutoModel, BaseConfig, ConfigType
 from ccvfi.model import VFIBaseModel
 
-from .util import ASSETS_PATH, calculate_image_similarity, get_device, load_images
+from .util import ASSETS_PATH, calculate_image_similarity, get_device, load_eval_image, load_images
 
 
 class Test_IFNet:
     def test_official(self) -> None:
         img0, img1, img2 = load_images()
+        eval_img = load_eval_image()
 
         for k in [ConfigType.IFNet_v426_heavy]:
             print(f"Testing {k}")
@@ -20,4 +21,4 @@ class Test_IFNet:
 
             cv2.imwrite(str(ASSETS_PATH / "test_out.jpg"), imgOut)
 
-            assert calculate_image_similarity(img0, imgOut)
+            assert calculate_image_similarity(eval_img, imgOut)
