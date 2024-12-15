@@ -6,13 +6,12 @@ from ccvfi.model import IFNetModel
 
 
 def test_auto_class_register() -> None:
-    cfg_name = "TESTCONFIG.pth"
-    model_name = "TESTMODEL"
+    cfg_name = "IFNet_v426_heavy.pth"
+    model_name = "IFNet"
 
     cfg = IFNetConfig(
         name=cfg_name,
         url="https://github.com/routineLife1/ccvfi/releases/tag/weights/IFNet_v426_heavy.pkl",
-        hash="4cc518e172156ad6207b9c7a43364f518832d83a4325d484240493a9e2980537",
     )
 
     AutoConfig.register(cfg)
