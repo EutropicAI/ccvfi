@@ -28,4 +28,4 @@ class VFIBaseModel(BaseModelInterface):
                     config=cfg, force_download=True, model_dir=self.model_dir, gh_proxy=self.gh_proxy
                 )
 
-        return torch.load(state_dict_path, map_location=self.device)
+        return torch.load(state_dict_path, map_location=self.device, weights_only=True)
