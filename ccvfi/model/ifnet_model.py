@@ -62,4 +62,8 @@ class IFNetModel(VFIBaseModel):
 
         result = self.model(inp, timestep, scale_list)
         result = _de_resize(result, h, w)
+        if self.fp16:
+            result = result.half()
+        else:
+            result = result.float()
         return result
