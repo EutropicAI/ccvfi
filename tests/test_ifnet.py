@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import torch
 
 from ccvfi import AutoConfig, AutoModel, BaseConfig, ConfigType
@@ -25,7 +26,7 @@ class Test_IFNet:
             inp = torch.cat([I0, I1], dim=1)
 
             out = model.inference(inp, timestep=0.5, scale=1.0)
-            imgOut = out.squeeze(0).permute(1, 2, 0).cpu().numpy() * 255
+            imgOut = (out.squeeze(0).permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
 
             cv2.imwrite(str(ASSETS_PATH / "test_out.jpg"), imgOut)
 
