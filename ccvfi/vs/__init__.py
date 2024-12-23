@@ -33,7 +33,4 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-
-from ccvfi.vs.sr import inference_sr  # noqa
-from ccvfi.vs.vsr import inference_vsr  # noqa
 from ccvfi.vs.vfi import inference_vfi  # noqa

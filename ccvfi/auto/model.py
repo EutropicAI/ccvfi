@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 
@@ -15,9 +15,6 @@ class AutoModel:
         fp16: bool = True,
         compile: bool = False,
         compile_backend: Optional[str] = None,
-        tile: Optional[Tuple[int, int]] = (128, 128),
-        tile_pad: int = 8,
-        pad_img: Optional[Tuple[int, int]] = None,
         model_dir: Optional[str] = None,
         gh_proxy: Optional[str] = None,
     ) -> Any:

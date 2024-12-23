@@ -14,6 +14,7 @@ IFNetConfigs = [
         name=ConfigType.IFNet_v426_heavy,
         url="https://github.com/routineLife1/ccvfi/releases/download/weights/IFNet_v426_heavy.pkl",
         hash="4cc518e172156ad6207b9c7a43364f518832d83a4325d484240493a9e2980537",
+        in_frame_count=2,
     )
 ]
 

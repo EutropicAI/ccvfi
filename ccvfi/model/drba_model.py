@@ -1,11 +1,8 @@
 # type: ignore
 from typing import Any, Union
 
-import cv2
-import numpy as np
 import torch
-from numpy import ndarray
-from torchvision import transforms
+import torch.nn.functional as F
 
 from ccvfi.arch import DRBA
 from ccvfi.model import MODEL_REGISTRY, VFIBaseModel
@@ -31,6 +28,8 @@ class DRBAModel(VFIBaseModel):
 
         model.load_state_dict(self.convert(state_dict), strict=False)
         model.eval().to(self.device)
+        if self.fp16:
+            model = model.half()
         return model
 
     def convert(self, param) -> Any:
@@ -39,9 +38,7 @@ class DRBAModel(VFIBaseModel):
     @torch.inference_mode()  # type: ignore
     def inference(
         self,
-        img0: np.ndarray,
-        img1: np.ndarray,
-        img2: np.ndarray,
+        Inputs: torch.Tensor,
         minus_t: list[float],
         zero_t: list[float],
         plus_t: list[float],
@@ -49,58 +46,46 @@ class DRBAModel(VFIBaseModel):
         right_scene_change: bool,
         scale: float,
         reuse: Any,
-    ) -> tuple[tuple[Union[ndarray, ndarray], ...], Any]:
+    ) -> tuple[tuple[Union[torch.Tensor, torch.Tensor], ...], Any]:
         """
         Inference with the model
 
-        :param img0: The input image(BGR), can use cv2 to read the image
-        :param img1: The input image(BGR), can use cv2 to read the image
-        :param img2: The input image(BGR), can use cv2 to read the image
-        :param minus_t: Timestep between -1 and 0 (img0 and img1)
-        :param zero_t: Timestep of 0, if not empty, preserve img1 (img1)
-        :param plus_t: Timestep between 0 and 1 (img1 and img2)
-        :param plus_t: Timestep between 0 and 1 (img1 and img2)
-        :param left_scene_change: True if there is a scene change between img0 and img1 (img0 and img1)
-        :param right_scene_change: True if there is a scene change between img1 and img2 (img1 and img2)
+        :param Inputs: The input frames (B, 3, C, H, W)
+        :param minus_t: Timestep between -1 and 0 (I0 and I1)
+        :param zero_t: Timestep of 0, if not empty, preserve I1 (I1)
+        :param plus_t: Timestep between 0 and 1 (I1 and I2)
+        :param left_scene_change: True if there is a scene change between I0 and I1 (I0 and I1)
+        :param right_scene_change: True if there is a scene change between I1 and I2 (I1 and I2)
         :param scale: Flow scale.
         :param reuse: Reusable output from model with last frame pair.
 
-        :return: All immediate frames between img0~img2(May contain img0, img1, img2) and reusable contents.
+        :return: All immediate frames between I0~I2 and reusable contents.
         """
 
-        def _resize(img, _scale) -> np.ndarray:
-            _h, _w, _ = img.shape
+        def _resize(img: torch.Tensor, _scale: float) -> torch.Tensor:
+            _, _, _h, _w = img.shape
             while _h * _scale % 64 != 0:
                 _h += 1
             while _w * _scale % 64 != 0:
                 _w += 1
-            return cv2.resize(img, (_w, _h))
+            return F.interpolate(img, size=(int(_h), int(_w)), mode="bilinear", align_corners=False)
 
-        def _de_resize(img, ori_w, ori_h) -> np.ndarray:
-            return cv2.resize(img, (ori_w, ori_h))
+        def _de_resize(img, ori_h, ori_w) -> torch.Tensor:
+            return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
 
-        h, w, c = img0.shape
-        img0 = _resize(img0, scale)
-        img1 = _resize(img1, scale)
-        img2 = _resize(img2, scale)
-        img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
-        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
-        img0 = transforms.ToTensor()(img0).unsqueeze(0).to(self.device)
-        img1 = transforms.ToTensor()(img1).unsqueeze(0).to(self.device)
-        img2 = transforms.ToTensor()(img2).unsqueeze(0).to(self.device)
+        if self.fp16:
+            Inputs = Inputs.half()
 
-        results, reuse = self.model(
-            img0, img1, img2, minus_t, zero_t, plus_t, left_scene_change, right_scene_change, scale, reuse
-        )
+        I0, I1, I2 = Inputs[:, 0], Inputs[:, 1], Inputs[:, 2]
+        _, _, h, w = I0.shape
+        I0 = _resize(I0, scale).unsqueeze(0)
+        I1 = _resize(I1, scale).unsqueeze(0)
+        I2 = _resize(I2, scale).unsqueeze(0)
 
-        def _convert(result) -> np.ndarray:
-            result = result.squeeze(0).permute(1, 2, 0).cpu().numpy()
-            result = (result * 255).clip(0, 255).astype("uint8")
+        inp = torch.cat([I0, I1, I2], dim=1)
 
-            return cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+        results, reuse = self.model(inp, minus_t, zero_t, plus_t, left_scene_change, right_scene_change, scale, reuse)
 
-        results = tuple(_convert(result) for result in results)
-        results = tuple(_de_resize(result, w, h) for result in results)
+        results = tuple(_de_resize(result, h, w) for result in results)
 
         return results, reuse

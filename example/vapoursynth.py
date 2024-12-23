@@ -8,37 +8,29 @@ from vapoursynth import core
 
 from ccvfi import AutoModel, BaseModelInterface, ConfigType
 
-# --- sisr, use fp16 to inference (vs.RGBH)
+# --- IFNet, use fp16 to inference (vs.RGBH)
 
 model: BaseModelInterface = AutoModel.from_pretrained(
-    pretrained_model_name=ConfigType.RealESRGAN_AnimeJaNai_HD_V3_Compact_2x, tile=None
+    pretrained_model_name=ConfigType.IFNet_v426_heavy,
 )
 
-clip = core.bs.VideoSource(source="s.mp4")
+core.num_threads = 1  # 设置为单线程
+clip = core.bs.VideoSource(source="./video/test.mp4")
 clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBH)
-clip = model.inference_video(clip)
+clip = model.inference_video(clip, scale=1.0, tar_fps=120)
 clip = core.resize.Bicubic(clip=clip, matrix_s="709", format=vs.YUV420P16)
 clip.set_output()
 
 # ---  use fp32 to inference (vs.RGBS)
 
 # model: BaseModelInterface = AutoModel.from_pretrained(
-#     pretrained_model_name=ConfigType.RealESRGAN_AnimeJaNai_HD_V3_Compact_2x,
-#     fp16=False,
-#     tile=None
+#     pretrained_model_name=ConfigType.IFNet_v426_heavy,
+#     fp16 = False
 # )
-#
-# clip = core.bs.VideoSource(source="s.mp4")
-# clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBS)
 
-# --- vsr
-
-# model: BaseModelInterface = AutoModel.from_pretrained(
-#     pretrained_model_name=ConfigType.AnimeSR_v2_4x
-# )
-#
-# clip = core.bs.VideoSource(source="s.mp4")
+# core.num_threads = 1  # 设置为单线程
+# clip = core.bs.VideoSource(source="./video/test.mp4")
 # clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBH)
-# clip = model.inference_video(clip)
+# clip = model.inference_video(clip, scale=1.0, tar_fps=120)
 # clip = core.resize.Bicubic(clip=clip, matrix_s="709", format=vs.YUV420P16)
 # clip.set_output()

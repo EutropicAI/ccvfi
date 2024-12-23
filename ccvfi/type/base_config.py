@@ -13,3 +13,4 @@ class BaseConfig(BaseModel):
     hash: Optional[str] = None
     arch: Union[ArchType, str]
     model: Union[ModelType, str]
+    in_frame_count: int = 3

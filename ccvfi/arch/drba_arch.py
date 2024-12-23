@@ -122,7 +122,8 @@ class DRBA(nn.Module):
         u, v = _x[:, 0:1], _x[:, 1:]
         return torch.sqrt(u**2 + v**2)
 
-    def forward(self, _I0, _I1, _I2, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
+    def forward(self, x, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
+        _I0, _I1, _I2 = x[:, 0], x[:, 1], x[:, 2]
         flow10_p, flow01_p, flow01_s, flow10_s = self.calc_flow(_I1, _I0, _scale) if not _reuse else _reuse
         flow12_p, flow21_p, flow12_s, flow21_s = self.calc_flow(_I1, _I2, _scale)
 
@@ -191,12 +192,12 @@ class DRBA(nn.Module):
 
         if _left_scene:
             for _ in minus_t:
-                zero_t = np.append(zero_t, 0)
+                zero_t = np.append(zero_t, 0.0)
             minus_t = []
 
         if _right_scene:
             for _ in plus_t:
-                zero_t = np.append(zero_t, 0)
+                zero_t = np.append(zero_t, 0.0)
             plus_t = []
 
         disable_drm = False

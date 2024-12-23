@@ -29,3 +29,38 @@ class VFIBaseModel(BaseModelInterface):
                 )
 
         return torch.load(state_dict_path, map_location=self.device, weights_only=True)
+
+    @torch.inference_mode()  # type: ignore
+    def inference(self, *args, **kwargs) -> torch.Tensor:
+        # cfg: BaseConfig = self.config
+        return self.model(*args, **kwargs)
+
+    @torch.inference_mode()  # type: ignore
+    def inference_video(
+        self, clip: Any, scale: float = 1.0, tar_fps: float = 60, scdet: bool = True, scdet_threshold: float = 0.3
+    ) -> Any:
+        """
+        Inference the video with the model, the clip should be a vapoursynth clip
+
+        :param clip: vs.VideoNode
+        :param scale: The flow scale factor
+        :param tar_fps: The fps of the interpolated video
+        :param scdet: Enable SSIM scene change detection
+        :param scdet_threshold: SSIM scene change detection threshold (greater is sensitive)
+        :return:
+        """
+
+        from ccvfi.vs import inference_vfi
+
+        cfg: BaseConfig = self.config
+
+        return inference_vfi(
+            inference=self.inference,
+            clip=clip,
+            scale=scale,
+            tar_fps=tar_fps,
+            in_frame_count=cfg.in_frame_count,
+            scdet=scdet,
+            scdet_threshold=scdet_threshold,
+            device=self.device,
+        )

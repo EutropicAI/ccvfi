@@ -1,10 +1,8 @@
 # type: ignore
 from typing import Any
 
-import cv2
-import numpy as np
 import torch
-from torchvision import transforms
+import torch.nn.functional as F
 
 from ccvfi.arch import IFNet
 from ccvfi.model import MODEL_REGISTRY
@@ -21,50 +19,47 @@ class IFNetModel(VFIBaseModel):
 
         model.load_state_dict(self.convert(state_dict), strict=False)
         model.eval().to(self.device)
+        if self.fp16:
+            model = model.half()
         return model
 
     def convert(self, param) -> Any:
         return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
     @torch.inference_mode()  # type: ignore
-    def inference(self, img0: np.ndarray, img1: np.ndarray, timestep: float, scale: float) -> np.ndarray:
+    def inference(self, Inputs: torch.Tensor, timestep: float, scale: float) -> torch.Tensor:
         """
         Inference with the model
 
-        :param img0: The input image(BGR), can use cv2 to read the image
-        :param img1: The input image(BGR), can use cv2 to read the image
+        :param Inputs: The input frames (B, 2, C, H, W)
         :param timestep: Timestep between 0 and 1 (img0 and img1)
         :param scale: Flow scale.
 
-        :return: an immediate frame between img0 and img1
+        :return: an immediate frame between I0 and I1
         """
 
-        def _resize(img, _scale) -> np.ndarray:
-            _h, _w, _ = img.shape
+        def _resize(img: torch.Tensor, _scale: float) -> torch.Tensor:
+            _, _, _h, _w = img.shape
             while _h * _scale % 64 != 0:
                 _h += 1
             while _w * _scale % 64 != 0:
                 _w += 1
-            return cv2.resize(img, (_w, _h))
+            return F.interpolate(img, size=(int(_h), int(_w)), mode="bilinear", align_corners=False)
 
-        def _de_resize(img, ori_w, ori_h) -> np.ndarray:
-            return cv2.resize(img, (ori_w, ori_h))
+        def _de_resize(img, ori_h, ori_w) -> torch.Tensor:
+            return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
 
-        h, w, c = img0.shape
-        img0 = _resize(img0, scale)
-        img1 = _resize(img1, scale)
-        img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
-        img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
-        img0 = transforms.ToTensor()(img0).unsqueeze(0).to(self.device)
-        img1 = transforms.ToTensor()(img1).unsqueeze(0).to(self.device)
+        if self.fp16:
+            Inputs = Inputs.half()
 
-        inp = torch.cat([img0, img1], dim=1)
+        I0, I1 = Inputs[:, 0], Inputs[:, 1]
+        _, _, h, w = I0.shape
+        I0 = _resize(I0, scale)
+        I1 = _resize(I1, scale)
+
+        inp = torch.cat([I0, I1], dim=1)
         scale_list = [16 / scale, 8 / scale, 4 / scale, 2 / scale, 1 / scale]
 
         result = self.model(inp, timestep, scale_list)
-        result = result.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        result = (result * 255).clip(0, 255).astype("uint8")
-
-        result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
-        result = _de_resize(result, w, h)
+        result = _de_resize(result, h, w)
         return result
