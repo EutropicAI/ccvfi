@@ -17,7 +17,7 @@ model: BaseModelInterface = AutoModel.from_pretrained(
 core.num_threads = 1  # 设置为单线程
 clip = core.bs.VideoSource(source="./video/test.mp4")
 clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBH)
-clip = model.inference_video(clip, scale=1.0, tar_fps=120)
+clip = model.inference_video(clip, scale=1.0, tar_fps=60, scdet=True, scdet_threshold=0.3)
 clip = core.resize.Bicubic(clip=clip, matrix_s="709", format=vs.YUV420P16)
 clip.set_output()
 
@@ -25,13 +25,12 @@ clip.set_output()
 
 # model: BaseModelInterface = AutoModel.from_pretrained(
 #     pretrained_model_name=ConfigType.IFNet_v426_heavy,
-#     fp16 = False
 # )
 
 # core.num_threads = 1  # 设置为单线程
 # clip = core.bs.VideoSource(source="./video/test.mp4")
-# clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBH)
-# clip = model.inference_video(clip, scale=1.0, tar_fps=120)
+# clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBS)
+# clip = model.inference_video(clip, scale=1.0, tar_fps=60, scdet=True, scdet_threshold=0.3)
 # clip = core.resize.Bicubic(clip=clip, matrix_s="709", format=vs.YUV420P16)
 # clip.set_output()
 
@@ -51,11 +50,11 @@ clip.set_output()
 # )
 #
 # core.num_threads = 1  # 设置为单线程
-# clip = core.bs.VideoSource(source="./video/ncop.mp4")
-# clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBS)
-# clip = model.inference_video(clip, scale=1.0, tar_fps=60)
-#
+# clip = core.bs.VideoSource(source="./video/ncop.mkv")
 # clip = core.resize.Bicubic(clip=clip, matrix_in_s="709", format=vs.RGBH)
-# new_clip = model2.inference_video(clip)
-# new_clip = core.resize.Bicubic(clip=new_clip, matrix_s="709", format=vs.YUV420P16)
-# new_clip.set_output()
+#
+# clip = model.inference_video(clip, scale=1.0, tar_fps=60, scdet=True, scdet_threshold=0.3)
+# clip = model2.inference_video(clip)
+#
+# clip = core.resize.Bicubic(clip=clip, matrix_s="709", format=vs.YUV420P16)
+# clip.set_output()

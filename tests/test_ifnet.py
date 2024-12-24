@@ -16,7 +16,7 @@ class Test_IFNet:
         for k in [ConfigType.IFNet_v426_heavy]:
             print(f"Testing {k}")
             cfg: BaseConfig = AutoConfig.from_pretrained(k)
-            model: VFIBaseModel = AutoModel.from_config(config=cfg, device=get_device())
+            model: VFIBaseModel = AutoModel.from_config(config=cfg, fp16=False, device=get_device())
             print(model.device)
 
             I0 = torch.from_numpy(img0).permute(2, 0, 1).unsqueeze(0).float().to(model.device) / 255.0
