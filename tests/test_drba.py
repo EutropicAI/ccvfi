@@ -19,9 +19,9 @@ class Test_DRBA:
             model: VFIBaseModel = AutoModel.from_config(config=cfg, fp16=False, device=get_device())
             print(model.device)
 
-            I0 = torch.from_numpy(img0).permute(2, 0, 1).unsqueeze(0).float().to(model.device) / 255.0
-            I1 = torch.from_numpy(img1).permute(2, 0, 1).unsqueeze(0).float().to(model.device) / 255.0
-            I2 = torch.from_numpy(img2).permute(2, 0, 1).unsqueeze(0).float().to(model.device) / 255.0
+            I0 = torch.from_numpy(img0).permute(2, 0, 1).unsqueeze(0).half().to(model.device) / 255.0
+            I1 = torch.from_numpy(img1).permute(2, 0, 1).unsqueeze(0).half().to(model.device) / 255.0
+            I2 = torch.from_numpy(img2).permute(2, 0, 1).unsqueeze(0).half().to(model.device) / 255.0
             I0 = I0.unsqueeze(0)
             I1 = I1.unsqueeze(0)
             I2 = I2.unsqueeze(0)
