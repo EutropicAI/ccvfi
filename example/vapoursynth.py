@@ -43,13 +43,11 @@ clip.set_output()
 #
 # model: BaseModelInterface = AutoModel.from_pretrained(
 #     pretrained_model_name=ConfigType.DRBA_IFNet,
-#     fp16=False
 # )
 #
 # model2: BaseModelInterface2 = AutoModel2.from_pretrained(
 #     pretrained_model_name=ConfigType2.RealESRGAN_AnimeJaNai_HD_V3_Compact_2x,
 #     tile=None,
-#     fp16=True
 # )
 #
 # core.num_threads = 1  # 设置为单线程
