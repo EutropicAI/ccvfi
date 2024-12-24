@@ -73,9 +73,6 @@ class DRBAModel(VFIBaseModel):
         def _de_resize(img, ori_h, ori_w) -> torch.Tensor:
             return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
 
-        if self.fp16:
-            Inputs = Inputs.half()
-
         I0, I1, I2 = Inputs[:, 0], Inputs[:, 1], Inputs[:, 2]
         _, _, h, w = I0.shape
         I0 = _resize(I0, scale).unsqueeze(0)

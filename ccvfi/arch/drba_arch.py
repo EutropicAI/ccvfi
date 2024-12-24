@@ -119,8 +119,9 @@ class DRBA(nn.Module):
 
     # Flow distance calculator
     def distance_calculator(self, _x):
-        u, v = _x[:, 0:1], _x[:, 1:]
-        return torch.sqrt(u**2 + v**2)
+        dtype = _x.dtype
+        u, v = _x[:, 0:1].float(), _x[:, 1:].float()
+        return torch.sqrt(u**2 + v**2).to(dtype)
 
     def forward(self, x, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
         _I0, _I1, _I2 = x[:, 0], x[:, 1], x[:, 2]
@@ -191,13 +192,12 @@ class DRBA(nn.Module):
         output1, output2 = [], []
 
         if _left_scene:
-            for _ in minus_t:
-                zero_t = np.append(zero_t, 0.0)
-            minus_t = []
+            for i in range(len(minus_t)):
+                minus_t[i] = -1
 
         if _right_scene:
             for _ in plus_t:
-                zero_t = np.append(zero_t, 0.0)
+                zero_t = np.append(zero_t, 0)
             plus_t = []
 
         disable_drm = False
