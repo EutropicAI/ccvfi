@@ -34,9 +34,9 @@ def load_images() -> tuple[np.ndarray, ...]:
     img0 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH0), dtype=np.uint8), cv2.IMREAD_COLOR)
     img1 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH1), dtype=np.uint8), cv2.IMREAD_COLOR)
     img2 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
-    img0 = cv2.resize(img0, (270, 135))
-    img1 = cv2.resize(img1, (270, 135))
-    img2 = cv2.resize(img2, (270, 135))
+    img0 = cv2.resize(img0, (960, 540))
+    img1 = cv2.resize(img1, (960, 540))
+    img2 = cv2.resize(img2, (960, 540))
 
     return img0, img1, img2
 
@@ -47,17 +47,17 @@ def load_eval_images() -> tuple[np.ndarray, ...]:
     img2 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
     img3 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH3), dtype=np.uint8), cv2.IMREAD_COLOR)
     img4 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH4), dtype=np.uint8), cv2.IMREAD_COLOR)
-    img0 = cv2.resize(img0, (270, 135))
-    img1 = cv2.resize(img1, (270, 135))
-    img2 = cv2.resize(img2, (270, 135))
-    img3 = cv2.resize(img3, (270, 135))
-    img4 = cv2.resize(img4, (270, 135))
+    img0 = cv2.resize(img0, (960, 540))
+    img1 = cv2.resize(img1, (960, 540))
+    img2 = cv2.resize(img2, (960, 540))
+    img3 = cv2.resize(img3, (960, 540))
+    img4 = cv2.resize(img4, (960, 540))
     return img0, img1, img2, img3, img4
 
 
 def load_eval_image() -> np.ndarray:
     img = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH), dtype=np.uint8), cv2.IMREAD_COLOR)
-    img = cv2.resize(img, (480, 270))
+    img = cv2.resize(img, (960, 540))
     return img
 
 
