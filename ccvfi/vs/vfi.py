@@ -13,8 +13,8 @@ from ccvfi.vs.convert import frame_to_tensor, tensor_to_frame
 
 
 class TMapper:
-    def __init__(self, src: float = -1.0, dst: float = 0.0, times: float = 2):
-        self.times = dst / src if times is None else times
+    def __init__(self, src: float = -1.0, dst: float = 0.0, times: float = -1):
+        self.times = dst / src if times == -1 else times
         self.now_step = -1
         self.src = src
         self.dst = dst
@@ -109,8 +109,8 @@ def ssim_matlab(
 def check_scene(x1: torch.Tensor, x2: torch.Tensor, enable_scdet: bool, scdet_threshold: float) -> Union[bool, Tensor]:
     if not enable_scdet:
         return False
-    x1 = F.interpolate(x1[0], (32, 32), mode="bilinear", align_corners=False)
-    x2 = F.interpolate(x2[0], (32, 32), mode="bilinear", align_corners=False)
+    x1 = F.interpolate(x1[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
+    x2 = F.interpolate(x2[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
     return ssim_matlab(x1, x2) < scdet_threshold
 
 
@@ -202,7 +202,7 @@ def inference_vsr_two_frame_in(
     reuse: tuple[torch.Tensor, ...]
 
     def to_input_tensor(x: vs.VideoFrame) -> torch.Tensor:
-        return frame_to_tensor(x, device=device).unsqueeze(0).unsqueeze(0).float()
+        return frame_to_tensor(x, device=device).unsqueeze(0).unsqueeze(0)
 
     new_clip = clip.std.AssumeFPS(fpsnum=mapper.dst, fpsden=1)
     less_num_frames = math.ceil(clip.num_frames * mapper.dst / mapper.src) - clip.num_frames
@@ -304,7 +304,7 @@ def inference_vsr_three_frame_in(
         return minus_t, zero_t, plus_t
 
     def to_input_tensor(x: vs.VideoFrame) -> torch.Tensor:
-        return frame_to_tensor(x, device=device).unsqueeze(0).unsqueeze(0).float()
+        return frame_to_tensor(x, device=device).unsqueeze(0).unsqueeze(0)
 
     new_clip = clip.std.AssumeFPS(fpsnum=mapper.dst, fpsden=1)
     less_num_frames = math.ceil(clip.num_frames * mapper.dst / mapper.src) - clip.num_frames

@@ -88,9 +88,4 @@ class DRBAModel(VFIBaseModel):
 
         results = tuple(_de_resize(result, h, w) for result in results)
 
-        if self.fp16:
-            results = tuple(result.half() for result in results)
-        else:
-            results = tuple(result.float() for result in results)
-
         return results, reuse
