@@ -8,7 +8,7 @@ from ccvfi.arch.arch_utils.warplayer import warp
 from ccvfi.type import ArchType
 
 
-@ARCH_REGISTRY.register(name=ArchType.IFNet)
+@ARCH_REGISTRY.register(name=ArchType.IFNET)
 class IFNet(nn.Module):
     def __init__(self):
         super(IFNet, self).__init__()
