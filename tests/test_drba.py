@@ -31,6 +31,6 @@ class Test_DRBA:
 
             for i in range(len(Outputs)):
                 out = (Outputs[i].squeeze(0).permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
-                cv2.imwrite(str(ASSETS_PATH / f"test_out_{i}.jpg"), out)
+                cv2.imwrite(str(ASSETS_PATH / f"test_{k}_out_{i}.jpg"), out)
 
                 assert calculate_image_similarity(eval_imgs[i], out)

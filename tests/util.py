@@ -1,6 +1,7 @@
 import math
 import os
 from pathlib import Path
+from typing import List
 
 import cv2
 import numpy as np
@@ -30,7 +31,7 @@ def get_device() -> torch.device:
     return DEFAULT_DEVICE
 
 
-def load_images() -> tuple[np.ndarray, ...]:
+def load_images() -> List[np.ndarray]:
     img0 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH0), dtype=np.uint8), cv2.IMREAD_COLOR)
     img1 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH1), dtype=np.uint8), cv2.IMREAD_COLOR)
     img2 = cv2.imdecode(np.fromfile(str(TEST_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
@@ -38,10 +39,10 @@ def load_images() -> tuple[np.ndarray, ...]:
     img1 = cv2.resize(img1, (960, 540))
     img2 = cv2.resize(img2, (960, 540))
 
-    return img0, img1, img2
+    return [img0, img1, img2]
 
 
-def load_eval_images() -> tuple[np.ndarray, ...]:
+def load_eval_images() -> List[np.ndarray]:
     img0 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH0), dtype=np.uint8), cv2.IMREAD_COLOR)
     img1 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH1), dtype=np.uint8), cv2.IMREAD_COLOR)
     img2 = cv2.imdecode(np.fromfile(str(EVAL_IMG_PATH2), dtype=np.uint8), cv2.IMREAD_COLOR)
@@ -52,7 +53,7 @@ def load_eval_images() -> tuple[np.ndarray, ...]:
     img2 = cv2.resize(img2, (960, 540))
     img3 = cv2.resize(img3, (960, 540))
     img4 = cv2.resize(img4, (960, 540))
-    return img0, img1, img2, img3, img4
+    return [img0, img1, img2, img3, img4]
 
 
 def load_eval_image() -> np.ndarray:
