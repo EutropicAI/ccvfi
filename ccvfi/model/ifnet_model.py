@@ -17,14 +17,12 @@ class IFNetModel(VFIBaseModel):
 
         model = IFNet()
 
-        model.load_state_dict(self.convert(state_dict), strict=False)
-        model.eval().to(self.device)
-        if self.fp16:
-            model = model.half()
-        return model
+        def _convert(param) -> Any:
+            return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
-    def convert(self, param) -> Any:
-        return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
+        model.load_state_dict(_convert(state_dict), strict=False)
+        model.eval().to(self.device)
+        return model
 
     @torch.inference_mode()  # type: ignore
     def inference(self, Inputs: torch.Tensor, timestep: float, scale: float) -> torch.Tensor:
