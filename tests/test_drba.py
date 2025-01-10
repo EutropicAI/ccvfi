@@ -30,7 +30,7 @@ class Test_DRBA:
             Outputs, _ = model.inference(inp, [-1, -0.5], [0], [0.5, 1], False, False, 1.0, None)
 
             for i in range(len(Outputs)):
-                out = (Outputs[i].squeeze(0).permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+                out = (Outputs[0, i].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
                 cv2.imwrite(str(ASSETS_PATH / f"test_{k}_out_{i}.jpg"), out)
 
                 assert calculate_image_similarity(eval_imgs[i], out)

@@ -31,7 +31,7 @@ class DRBA(nn.Module):
 
             self.fwarp = fwarp
 
-    def inference(self, x, timestep=0.5, scale_list=None, fastmode=True, ensemble=False):
+    def inference(self, x, timestep=0.5, scale_list=None, fastmode=True, ensemble=False, f0=None, f1=None):
         if scale_list is None:
             scale_list = [16, 8, 4, 2, 1]
         channel = x.shape[1] // 2
@@ -39,8 +39,8 @@ class DRBA(nn.Module):
         img1 = x[:, channel:]
         if not torch.is_tensor(timestep):
             timestep = (x[:, :1].clone() * 0 + 1) * timestep
-        f0 = self.encode(img0[:, :3])
-        f1 = self.encode(img1[:, :3])
+        f0 = self.encode(img0[:, :3]) if f0 is None else f0
+        f1 = self.encode(img1[:, :3]) if f1 is None else f1
         flow_list = []
         merged = []
         mask_list = []
@@ -87,33 +87,41 @@ class DRBA(nn.Module):
             """
         return merged[4], flow_list
 
-    def calc_flow(self, a, b, _scale):
-        imgs = torch.cat((a, b), 1)
-        scale_list = [16 / _scale, 8 / _scale, 4 / _scale, 2 / _scale, 1 / _scale]
-        # get top scale flow flow0.5 -> 0/1
-        _, flow_list = self.inference(imgs, timestep=0.5, scale_list=scale_list)
-        flow = flow_list[-1]
+    def calc_flow(self, a, b, scale, f0=None, f1=None):
+        scale_list = [16 / scale, 8 / scale, 4 / scale, 2 / scale, 1 / scale]
+        # calc flow at the lowest resolution (significantly faster with almost no quality loss).
+        timestep = (a[:, :1].clone() * 0 + 1) * 0.5
+        f0 = self.encode(a[:, :3]) if f0 is None else f0
+        f1 = self.encode(b[:, :3]) if f1 is None else f1
+        flow, _, _ = self.block0(torch.cat((a[:, :3], b[:, :3], f0, f1, timestep), 1), None, scale=scale_list[0])
+
+        # get flow flow0.5 -> 0/1
         flow50, flow51 = flow[:, :2], flow[:, 2:]
 
-        # only need forward direction flow
-        flow05_primary = self.fwarp(flow51, flow50, None, "avg")
-        flow15_primary = self.fwarp(flow50, flow51, None, "avg")
+        warp_method = "avg"
 
         # qvi
-        # flow05, norm2 = warp(flow50, flow50)
+        # flow05, norm2 = fwarp(flow50, flow50)
         # flow05[norm2]...
         # flow05 = -flow05
 
-        flow05_secondary = -self.fwarp(flow50, flow50, None, "avg")
-        flow15_secondary = -self.fwarp(flow51, flow51, None, "avg")
+        flow05 = -1 * self.fwarp(flow50, flow50, None, warp_method)
+        flow15 = -1 * self.fwarp(flow51, flow51, None, warp_method)
 
-        _flow01_primary = flow05_primary * 2
-        _flow10_primary = flow15_primary * 2
+        ones_mask = flow05.clone() * 0 + 1
+        mask05 = self.fwarp(ones_mask, flow50, None, warp_method)
+        mask15 = self.fwarp(ones_mask, flow51, None, warp_method)
 
-        _flow01_secondary = flow05_secondary * 2
-        _flow10_secondary = flow15_secondary * 2
+        gap05 = mask05 < 0.999
+        gap15 = mask15 < 0.999
 
-        return _flow01_primary, _flow10_primary, _flow01_secondary, _flow10_secondary
+        flow05[gap05] = (ones_mask * max(flow05.shape[2], flow05.shape[3]))[gap05]
+        flow15[gap15] = (ones_mask * max(flow15.shape[2], flow15.shape[3]))[gap15]
+
+        flow01 = flow05 * 2
+        flow10 = flow15 * 2
+
+        return flow01, flow10, f0, f1
 
     # Flow distance calculator
     def distance_calculator(self, _x):
@@ -123,69 +131,40 @@ class DRBA(nn.Module):
 
     def forward(self, x, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
         _I0, _I1, _I2 = x[:, 0], x[:, 1], x[:, 2]
-        flow10_p, flow01_p, flow01_s, flow10_s = self.calc_flow(_I1, _I0, _scale) if not _reuse else _reuse
-        flow12_p, flow21_p, flow12_s, flow21_s = self.calc_flow(_I1, _I2, _scale)
+        flow10, flow01, f1, f0 = self.calc_flow(_I1, _I0, _scale) if not _reuse else _reuse
+        if _reuse is None:
+            flow12, flow21, f1, f2 = self.calc_flow(_I1, _I2, _scale)
+        else:
+            flow12, flow21, f1, f2 = self.calc_flow(_I1, _I2, _scale, f0=_reuse[2])
 
         # Compute the distance using the optical flow and distance calculator
-        d10_p = self.distance_calculator(flow10_p) + 1e-4
-        d12_p = self.distance_calculator(flow12_p) + 1e-4
-        d10_s = self.distance_calculator(flow10_s) + 1e-4
-        d12_s = self.distance_calculator(flow12_s) + 1e-4
+        d10 = self.distance_calculator(flow10) + 1e-4
+        d12 = self.distance_calculator(flow12) + 1e-4
 
         # Calculate the distance ratio map
-        drm10_p = d10_p / (d10_p + d12_p)
-        drm12_p = d12_p / (d10_p + d12_p)
-        drm10_s = d10_s / (d10_s + d12_s)
-        drm12_s = d12_s / (d10_s + d12_s)
+        drm10 = d10 / (d10 + d12)
+        drm12 = d12 / (d10 + d12)
 
-        ones_mask = torch.ones_like(drm10_p, device=drm10_p.device)
+        ones_mask = torch.ones_like(drm10, device=drm10.device)
 
         def calc_drm_rife(_t):
             # The distance ratio map (drm) is initially aligned with I1.
             # To align it with I0 and I2, we need to warp the drm maps.
             # Note: 1. To reverse the direction of the drm map, use 1 - drm and then warp it.
             # 2. For RIFE, drm should be aligned with the time corresponding to the intermediate frame.
-            _drm01r_p = self.fwarp(1 - drm10_p, flow10_p * ((1 - drm10_p) * 2) * _t, None, strMode="avg")
-            _drm21r_p = self.fwarp(1 - drm12_p, flow12_p * ((1 - drm12_p) * 2) * _t, None, strMode="avg")
-            _drm01r_s = self.fwarp(1 - drm10_s, flow10_s * ((1 - drm10_s) * 2) * _t, None, strMode="avg")
-            _drm21r_s = self.fwarp(1 - drm12_s, flow12_s * ((1 - drm12_s) * 2) * _t, None, strMode="avg")
+            _drm01r = self.fwarp(1 - drm10, flow10 * ((1 - drm10) * 2) * _t, None, strMode="avg")
+            _drm21r = self.fwarp(1 - drm12, flow12 * ((1 - drm12) * 2) * _t, None, strMode="avg")
 
-            self.warped_ones_mask01r_p = self.fwarp(
-                ones_mask, flow10_p * ((1 - _drm01r_p) * 2) * _t, None, strMode="avg"
-            )
-            self.warped_ones_mask21r_p = self.fwarp(
-                ones_mask, flow12_p * ((1 - _drm21r_p) * 2) * _t, None, strMode="avg"
-            )
-            self.warped_ones_mask01r_s = self.fwarp(
-                ones_mask, flow10_s * ((1 - _drm01r_s) * 2) * _t, None, strMode="avg"
-            )
-            self.warped_ones_mask21r_s = self.fwarp(
-                ones_mask, flow12_s * ((1 - _drm21r_s) * 2) * _t, None, strMode="avg"
-            )
+            self.warped_ones_mask01r = self.fwarp(ones_mask, flow10 * ((1 - drm10) * 2) * _t, None, strMode="avg")
+            self.warped_ones_mask21r = self.fwarp(ones_mask, flow12 * ((1 - drm12) * 2) * _t, None, strMode="avg")
 
-            holes01r_p = self.warped_ones_mask01r_p < 0.999
-            holes21r_p = self.warped_ones_mask21r_p < 0.999
+            holes01r = self.warped_ones_mask01r < 0.999
+            holes21r = self.warped_ones_mask21r < 0.999
 
-            _drm01r_p[holes01r_p] = _drm01r_s[holes01r_p]
-            _drm21r_p[holes21r_p] = _drm21r_s[holes21r_p]
+            _drm01r[holes01r] = _drm01r[holes01r]
+            _drm21r[holes21r] = _drm21r[holes21r]
 
-            holes01r_s = self.warped_ones_mask01r_s < 0.999
-            holes21r_s = self.warped_ones_mask21r_s < 0.999
-
-            holes01r = torch.logical_and(holes01r_p, holes01r_s)
-            holes21r = torch.logical_and(holes21r_p, holes21r_s)
-
-            _drm01r_p[holes01r] = (1 - drm10_p)[holes01r]
-            _drm21r_p[holes21r] = (1 - drm12_p)[holes21r]
-
-            _drm01r_p = torch.nn.functional.interpolate(
-                _drm01r_p, size=_I0.shape[2:], mode="bilinear", align_corners=False
-            )
-            _drm21r_p = torch.nn.functional.interpolate(
-                _drm21r_p, size=_I0.shape[2:], mode="bilinear", align_corners=False
-            )
-
-            return _drm01r_p, _drm21r_p
+            return _drm01r, _drm21r
 
         output1, output2 = [], []
 
@@ -238,7 +217,7 @@ class DRBA(nn.Module):
         _output = output1 + output2
 
         # next flow10, flow01 = reverse(current flow12, flow21)
-        return _output, (flow21_p, flow12_p, flow21_s, flow12_s)
+        return _output, (flow21, flow12, f2, f1)
 
 
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):

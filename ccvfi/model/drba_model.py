@@ -1,9 +1,10 @@
-from typing import Any, List, Union
+from typing import Any, List
 
 import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from torchvision import transforms
 
 from ccvfi.arch import DRBA
@@ -46,7 +47,7 @@ class DRBAModel(VFIBaseModel):
         right_scene_change: bool,
         scale: float,
         reuse: Any,
-    ) -> tuple[tuple[Union[torch.Tensor, torch.Tensor], ...], Any]:
+    ) -> tuple[Tensor, Any]:
         """
         Inference with the model
 
@@ -83,7 +84,7 @@ class DRBAModel(VFIBaseModel):
 
         results, reuse = self.model(inp, minus_t, zero_t, plus_t, left_scene_change, right_scene_change, scale, reuse)
 
-        results = tuple(_de_resize(result, h, w) for result in results)
+        results = torch.cat(tuple(_de_resize(result, h, w).unsqueeze(0) for result in results), dim=1)
 
         return results, reuse
 
@@ -109,7 +110,6 @@ class DRBAModel(VFIBaseModel):
 
         results, _ = self.inference(inp, [-1, -0.5], [0], [0.5, 1], False, False, 1.0, None)
 
-        ### 自己实现一下，这里DRBA输出的啥玩意，打断点看怎么还是个tuple，搞成张量
         results_list = []
         for i in range(results.shape[1]):
             img = results[0, i, :, :, :]
