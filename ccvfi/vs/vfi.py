@@ -346,8 +346,8 @@ def inference_vsr_three_frame_in(
                     torch.cat([I0, I1, I2], dim=1), mt, zt, pt, left_scene, right_scene, scale, reuse
                 )
 
-            for x in output:
-                out_frames[out_idx] = x
+            for i in range(len(output)):
+                out_frames[out_idx] = output[0, i : i + 1]
                 out_idx += 1
 
             # clear input cache

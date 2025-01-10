@@ -12,7 +12,7 @@ class AutoModel:
     def from_pretrained(
         pretrained_model_name: Union[ConfigType, str],
         device: Optional[torch.device] = None,
-        fp16: bool = False,
+        fp16: bool = True,
         compile: bool = False,
         compile_backend: Optional[str] = None,
         model_dir: Optional[str] = None,
