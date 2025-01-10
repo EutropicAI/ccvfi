@@ -26,9 +26,6 @@ class AutoModel:
         :param fp16: use fp16 precision or not
         :param compile: use torch.compile or not
         :param compile_backend: backend of torch.compile
-        :param tile: tile size for tile inference, tile[0] is width, tile[1] is height, None for disable
-        :param tile_pad: The padding size for each tile
-        :param pad_img: The size for the padded image, pad[0] is width, pad[1] is height, None for auto calculate
         :param model_dir: The path to cache the downloaded model. Should be a full path. If None, use default cache path.
         :param gh_proxy: The proxy for downloading from github release. Example: https://github.abskoop.workers.dev/
         :return:
@@ -63,9 +60,6 @@ class AutoModel:
         :param fp16: use fp16 precision or not
         :param compile: use torch.compile or not
         :param compile_backend: backend of torch.compile
-        :param tile: tile size for tile inference, tile[0] is width, tile[1] is height, None for disable
-        :param tile_pad: The padding size for each tile
-        :param pad_img: The size for the padded image, pad[0] is width, pad[1] is height, None for auto calculate
         :param model_dir: The path to cache the downloaded model. Should be a full path. If None, use default cache path.
         :param gh_proxy: The proxy for downloading from github release. Example: https://github.abskoop.workers.dev/
         :return:

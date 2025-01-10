@@ -5,7 +5,7 @@ from ccvfi.type import ArchType, BaseConfig, ConfigType, ModelType
 
 
 class IFNetConfig(BaseConfig):
-    arch: Union[ArchType, str] = ArchType.IFNet
+    arch: Union[ArchType, str] = ArchType.IFNET
     model: Union[ModelType, str] = ModelType.IFNet
 
 

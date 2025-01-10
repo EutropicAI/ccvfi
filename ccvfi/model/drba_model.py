@@ -1,8 +1,10 @@
-# type: ignore
-from typing import Any, Union
+from typing import Any, List, Union
 
+import cv2
+import numpy as np
 import torch
 import torch.nn.functional as F
+from torchvision import transforms
 
 from ccvfi.arch import DRBA
 from ccvfi.model import MODEL_REGISTRY, VFIBaseModel
@@ -26,19 +28,17 @@ class DRBAModel(VFIBaseModel):
 
         model = DRBA(support_cupy=HAS_CUDA)
 
-        model.load_state_dict(self.convert(state_dict), strict=False)
-        model.eval().to(self.device)
-        if self.fp16:
-            model = model.half()
-        return model
+        def _convert(param: Any) -> Any:
+            return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
 
-    def convert(self, param) -> Any:
-        return {k.replace("module.", ""): v for k, v in param.items() if "module." in k}
+        model.load_state_dict(_convert(state_dict), strict=False)
+        model.eval().to(self.device)
+        return model
 
     @torch.inference_mode()  # type: ignore
     def inference(
         self,
-        Inputs: torch.Tensor,
+        imgs: torch.Tensor,
         minus_t: list[float],
         zero_t: list[float],
         plus_t: list[float],
@@ -50,7 +50,7 @@ class DRBAModel(VFIBaseModel):
         """
         Inference with the model
 
-        :param Inputs: The input frames (B, 3, C, H, W)
+        :param imgs: The input frames (B, 3, C, H, W)
         :param minus_t: Timestep between -1 and 0 (I0 and I1)
         :param zero_t: Timestep of 0, if not empty, preserve I1 (I1)
         :param plus_t: Timestep between 0 and 1 (I1 and I2)
@@ -70,10 +70,10 @@ class DRBAModel(VFIBaseModel):
                 _w += 1
             return F.interpolate(img, size=(int(_h), int(_w)), mode="bilinear", align_corners=False)
 
-        def _de_resize(img, ori_h, ori_w) -> torch.Tensor:
+        def _de_resize(img: Any, ori_h: int, ori_w: int) -> torch.Tensor:
             return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
 
-        I0, I1, I2 = Inputs[:, 0], Inputs[:, 1], Inputs[:, 2]
+        I0, I1, I2 = imgs[:, 0], imgs[:, 1], imgs[:, 2]
         _, _, h, w = I0.shape
         I0 = _resize(I0, scale).unsqueeze(0)
         I1 = _resize(I1, scale).unsqueeze(0)
@@ -86,3 +86,36 @@ class DRBAModel(VFIBaseModel):
         results = tuple(_de_resize(result, h, w) for result in results)
 
         return results, reuse
+
+    @torch.inference_mode()  # type: ignore
+    def inference_image_list(self, img_list: List[np.ndarray]) -> List[np.ndarray]:
+        """
+        Inference numpy image list with the model
+
+        :param img_list: 3 input frames (img0, img1, img2)
+
+        :return: 5 output frames (img0, img0_1, img1, img1_2, img2)
+        """
+        if len(img_list) != 3:
+            raise ValueError("DRBA img_list must contain 3 images")
+
+        img_list_tensor = []
+        for img in img_list:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_tensor = transforms.ToTensor()(img).unsqueeze(0).to(self.device)
+            img_list_tensor.append(img_tensor)
+
+        inp = torch.stack(img_list_tensor, dim=1)
+
+        results, _ = self.inference(inp, [-1, -0.5], [0], [0.5, 1], False, False, 1.0, None)
+
+        ### 自己实现一下，这里DRBA输出的啥玩意，打断点看怎么还是个tuple，搞成张量
+        results_list = []
+        for i in range(results.shape[1]):
+            img = results[0, i, :, :, :]
+            img = img.permute(1, 2, 0).cpu().numpy()
+            img = (img * 255).clip(0, 255).astype("uint8")
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            results_list.append(img)
+
+        return results_list

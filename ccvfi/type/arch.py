@@ -5,5 +5,5 @@ from enum import Enum
 class ArchType(str, Enum):
     # ------------------------------------- Video Frame Interpolation ----------------------------------------------
 
-    IFNet = "IFNet"
+    IFNET = "IFNET"
     DRBA = "DRBA"

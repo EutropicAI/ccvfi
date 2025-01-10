@@ -2,7 +2,6 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-import numpy as np
 import torch
 
 from ccvfi.util.device import DEFAULT_DEVICE
@@ -77,8 +76,15 @@ class BaseModelInterface(ABC):
 
     @abstractmethod
     @torch.inference_mode()  # type: ignore
-    def inference(self, *args: Any) -> np.ndarray:
+    def inference(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         raise NotImplementedError
 
-    def __call__(self, *args: Any) -> np.ndarray:
+    @torch.inference_mode()  # type: ignore
+    def inference_video(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Inference the video with the model, the clip should be a vapoursynth clip
+        """
+        raise NotImplementedError
+
+    def __call__(self, *args: Any, **kwargs: Any) -> torch.Tensor:
         return self.inference(*args)

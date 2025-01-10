@@ -7,10 +7,8 @@ from ccvfi.arch import ARCH_REGISTRY
 from ccvfi.arch.arch_utils.warplayer import warp
 from ccvfi.type import ArchType
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-@ARCH_REGISTRY.register(name=ArchType.IFNet)
+@ARCH_REGISTRY.register(name=ArchType.IFNET)
 class IFNet(nn.Module):
     def __init__(self):
         super(IFNet, self).__init__()

@@ -1,5 +1,6 @@
-from typing import Any
+from typing import Any, List
 
+import numpy as np
 import torch
 
 from ccvfi.cache_models import load_file_from_url
@@ -32,8 +33,11 @@ class VFIBaseModel(BaseModelInterface):
 
     @torch.inference_mode()  # type: ignore
     def inference(self, *args, **kwargs) -> torch.Tensor:
-        # cfg: BaseConfig = self.config
-        return self.model(*args, **kwargs)
+        raise NotImplementedError
+
+    @torch.inference_mode()  # type: ignore
+    def inference_image_list(self, img_list: List[np.ndarray]) -> List[np.ndarray]:
+        raise NotImplementedError
 
     @torch.inference_mode()  # type: ignore
     def inference_video(
