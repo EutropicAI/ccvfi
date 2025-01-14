@@ -1,7 +1,7 @@
 import math
 import random
 from math import exp
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -82,7 +82,6 @@ def ssim_matlab(
     window_size: int = 11,
     window: Tensor = None,
     size_average: bool = True,
-    full: bool = False,
 ) -> Tensor:
     # Value range can be different from 255. Other common ranges are 1 (sigmoid) and 2 (tanh).
     if torch.max(img1) > 128:
@@ -122,7 +121,6 @@ def ssim_matlab(
 
     v1 = 2.0 * sigma12 + C2
     v2 = sigma1_sq + sigma2_sq + C2
-    cs = torch.mean(v1 / v2)  # contrast sensitivity
 
     ssim_map = ((2 * mu1_mu2 + C1) * v1) / ((mu1_sq + mu2_sq + C1) * v2)
 
@@ -131,14 +129,12 @@ def ssim_matlab(
     else:
         ret = ssim_map.mean(1).mean(1).mean(1)
 
-    if full:
-        return ret, cs
     return ret
 
 
-def check_scene(x1: Tensor, x2: Tensor, enable_scdet: bool, scdet_threshold: float) -> Union[bool, Tensor]:
+def check_scene(x1: Tensor, x2: Tensor, enable_scdet: bool, scdet_threshold: float) -> bool:
     if not enable_scdet:
         return False
-    x1 = F.interpolate(x1[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
-    x2 = F.interpolate(x2[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
-    return ssim_matlab(x1, x2) < scdet_threshold
+    x1 = F.interpolate(x1, (32, 32), mode="bilinear", align_corners=False)
+    x2 = F.interpolate(x2, (32, 32), mode="bilinear", align_corners=False)
+    return ssim_matlab(x1, x2).item() < scdet_threshold
