@@ -3,13 +3,13 @@ from typing import Any, List
 import cv2
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torchvision import transforms
 
 from ccvfi.arch import IFNet
 from ccvfi.model import MODEL_REGISTRY
 from ccvfi.model.vfi_base_model import VFIBaseModel
 from ccvfi.type import ModelType
+from ccvfi.util.misc import de_resize, resize
 
 
 @MODEL_REGISTRY.register(name=ModelType.IFNet)
@@ -38,28 +38,17 @@ class IFNetModel(VFIBaseModel):
         :return: an immediate frame between I0 and I1
         """
 
-        def _resize(img: torch.Tensor, _scale: float) -> torch.Tensor:
-            _, _, _h, _w = img.shape
-            while _h * _scale % 64 != 0:
-                _h += 1
-            while _w * _scale % 64 != 0:
-                _w += 1
-            return F.interpolate(img, size=(int(_h), int(_w)), mode="bilinear", align_corners=False)
-
-        def _de_resize(img: Any, ori_h: int, ori_w: int) -> torch.Tensor:
-            return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
-
         I0, I1 = imgs[:, 0], imgs[:, 1]
         _, _, h, w = I0.shape
-        I0 = _resize(I0, scale)
-        I1 = _resize(I1, scale)
+        I0 = resize(I0, scale)
+        I1 = resize(I1, scale)
 
         inp = torch.cat([I0, I1], dim=1)
         scale_list = [16 / scale, 8 / scale, 4 / scale, 2 / scale, 1 / scale]
 
         result = self.model(inp, timestep, scale_list)
 
-        result = _de_resize(result, h, w)
+        result = de_resize(result, h, w)
 
         return result
 

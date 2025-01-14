@@ -1,117 +1,13 @@
 import math
-from math import exp
-from typing import Callable, Dict, Union
+from typing import Callable, Dict
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import vapoursynth as vs
-from torch import Tensor
 from vapoursynth import core
 
+from ccvfi.util.misc import TMapper, check_scene
 from ccvfi.vs.convert import frame_to_tensor, tensor_to_frame
-
-
-class TMapper:
-    def __init__(self, src: float = -1.0, dst: float = 0.0, times: float = -1):
-        self.times = dst / src if times == -1 else times
-        self.now_step = -1
-        self.src = src
-        self.dst = dst
-
-    def get_range_timestamps(
-        self, _min: float, _max: float, lclose: bool = True, rclose: bool = False, normalize: bool = True
-    ) -> list:
-        _min_step = math.ceil(_min * self.times)
-        _max_step = math.ceil(_max * self.times)
-        _start = _min_step if lclose else _min_step + 1
-        _end = _max_step if not rclose else _max_step + 1
-        if _start >= _end:
-            return []
-        if normalize:
-            return [((_i / self.times) - _min) / (_max - _min) for _i in range(_start, _end)]
-        return [_i / self.times for _i in range(_start, _end)]
-
-
-def gaussian(window_size: int, sigma: float) -> torch.Tensor:
-    gauss = torch.Tensor([exp(-((x - window_size // 2) ** 2) / float(2 * sigma**2)) for x in range(window_size)])
-    return gauss / gauss.sum()
-
-
-def create_window_3d(window_size: int, channel: int = 1) -> torch.Tensor:
-    _1D_window = gaussian(window_size, 1.5).unsqueeze(1)
-    _2D_window = _1D_window.mm(_1D_window.t())
-    _3D_window = _2D_window.unsqueeze(2) @ (_1D_window.t())
-    window = _3D_window.expand(1, channel, window_size, window_size, window_size).contiguous()
-    return window
-
-
-def ssim_matlab(
-    img1: torch.Tensor,
-    img2: torch.Tensor,
-    window_size: int = 11,
-    window: torch.Tensor = None,
-    size_average: bool = True,
-    full: bool = False,
-) -> torch.Tensor:
-    # Value range can be different from 255. Other common ranges are 1 (sigmoid) and 2 (tanh).
-    if torch.max(img1) > 128:
-        max_val = 255
-    else:
-        max_val = 1
-
-    if torch.min(img1) < -0.5:
-        min_val = -1
-    else:
-        min_val = 0
-    L = max_val - min_val
-
-    padd = 0
-    (_, _, height, width) = img1.size()
-    if window is None:
-        real_size = min(window_size, height, width)
-        window = create_window_3d(real_size, channel=1).to(img1.device)
-        # Channel is set to 1 since we consider color images as volumetric images
-
-    img1 = img1.unsqueeze(1)
-    img2 = img2.unsqueeze(1)
-
-    mu1 = F.conv3d(F.pad(img1, (5, 5, 5, 5, 5, 5), mode="replicate"), window, padding=padd, groups=1)
-    mu2 = F.conv3d(F.pad(img2, (5, 5, 5, 5, 5, 5), mode="replicate"), window, padding=padd, groups=1)
-
-    mu1_sq = mu1.pow(2)
-    mu2_sq = mu2.pow(2)
-    mu1_mu2 = mu1 * mu2
-
-    sigma1_sq = F.conv3d(F.pad(img1 * img1, (5, 5, 5, 5, 5, 5), "replicate"), window, padding=padd, groups=1) - mu1_sq
-    sigma2_sq = F.conv3d(F.pad(img2 * img2, (5, 5, 5, 5, 5, 5), "replicate"), window, padding=padd, groups=1) - mu2_sq
-    sigma12 = F.conv3d(F.pad(img1 * img2, (5, 5, 5, 5, 5, 5), "replicate"), window, padding=padd, groups=1) - mu1_mu2
-
-    C1 = (0.01 * L) ** 2
-    C2 = (0.03 * L) ** 2
-
-    v1 = 2.0 * sigma12 + C2
-    v2 = sigma1_sq + sigma2_sq + C2
-    cs = torch.mean(v1 / v2)  # contrast sensitivity
-
-    ssim_map = ((2 * mu1_mu2 + C1) * v1) / ((mu1_sq + mu2_sq + C1) * v2)
-
-    if size_average:
-        ret = ssim_map.mean()
-    else:
-        ret = ssim_map.mean(1).mean(1).mean(1)
-
-    if full:
-        return ret, cs
-    return ret
-
-
-def check_scene(x1: torch.Tensor, x2: torch.Tensor, enable_scdet: bool, scdet_threshold: float) -> Union[bool, Tensor]:
-    if not enable_scdet:
-        return False
-    x1 = F.interpolate(x1[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
-    x2 = F.interpolate(x2[0].clone().float(), (32, 32), mode="bilinear", align_corners=False)
-    return ssim_matlab(x1, x2) < scdet_threshold
 
 
 def inference_vfi(

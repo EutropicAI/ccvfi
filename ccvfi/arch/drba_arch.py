@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from ccvfi.arch import ARCH_REGISTRY
 from ccvfi.arch.arch_utils.warplayer import warp
 from ccvfi.type import ArchType
+from ccvfi.util.misc import distance_calculator
 
 
 @ARCH_REGISTRY.register(name=ArchType.DRBA)
@@ -123,12 +124,6 @@ class DRBA(nn.Module):
 
         return flow01, flow10, f0, f1
 
-    # Flow distance calculator
-    def distance_calculator(self, _x):
-        dtype = _x.dtype
-        u, v = _x[:, 0:1].float(), _x[:, 1:].float()
-        return torch.sqrt(u**2 + v**2).to(dtype)
-
     def forward(self, x, minus_t, zero_t, plus_t, _left_scene, _right_scene, _scale, _reuse=None):
         _I0, _I1, _I2 = x[:, 0], x[:, 1], x[:, 2]
         flow10, flow01, f1, f0 = self.calc_flow(_I1, _I0, _scale) if not _reuse else _reuse
@@ -138,8 +133,8 @@ class DRBA(nn.Module):
             flow12, flow21, f1, f2 = self.calc_flow(_I1, _I2, _scale, f0=_reuse[2])
 
         # Compute the distance using the optical flow and distance calculator
-        d10 = self.distance_calculator(flow10) + 1e-4
-        d12 = self.distance_calculator(flow12) + 1e-4
+        d10 = distance_calculator(flow10) + 1e-4
+        d12 = distance_calculator(flow12) + 1e-4
 
         # Calculate the distance ratio map
         drm10 = d10 / (d10 + d12)

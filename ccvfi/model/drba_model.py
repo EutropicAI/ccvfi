@@ -3,13 +3,13 @@ from typing import Any, List
 import cv2
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch import Tensor
 from torchvision import transforms
 
 from ccvfi.arch import DRBA
 from ccvfi.model import MODEL_REGISTRY, VFIBaseModel
 from ccvfi.type import ModelType
+from ccvfi.util.misc import de_resize, resize
 
 
 @MODEL_REGISTRY.register(name=ModelType.DRBA)
@@ -63,28 +63,17 @@ class DRBAModel(VFIBaseModel):
         :return: All immediate frames between I0~I2 and reusable contents.
         """
 
-        def _resize(img: torch.Tensor, _scale: float) -> torch.Tensor:
-            _, _, _h, _w = img.shape
-            while _h * _scale % 64 != 0:
-                _h += 1
-            while _w * _scale % 64 != 0:
-                _w += 1
-            return F.interpolate(img, size=(int(_h), int(_w)), mode="bilinear", align_corners=False)
-
-        def _de_resize(img: Any, ori_h: int, ori_w: int) -> torch.Tensor:
-            return F.interpolate(img, size=(int(ori_h), int(ori_w)), mode="bilinear", align_corners=False)
-
         I0, I1, I2 = imgs[:, 0], imgs[:, 1], imgs[:, 2]
         _, _, h, w = I0.shape
-        I0 = _resize(I0, scale).unsqueeze(0)
-        I1 = _resize(I1, scale).unsqueeze(0)
-        I2 = _resize(I2, scale).unsqueeze(0)
+        I0 = resize(I0, scale).unsqueeze(0)
+        I1 = resize(I1, scale).unsqueeze(0)
+        I2 = resize(I2, scale).unsqueeze(0)
 
         inp = torch.cat([I0, I1, I2], dim=1)
 
         results, reuse = self.model(inp, minus_t, zero_t, plus_t, left_scene_change, right_scene_change, scale, reuse)
 
-        results = torch.cat(tuple(_de_resize(result, h, w).unsqueeze(0) for result in results), dim=1)
+        results = torch.cat(tuple(de_resize(result, h, w).unsqueeze(0) for result in results), dim=1)
 
         return results, reuse
 
