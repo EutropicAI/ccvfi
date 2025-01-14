@@ -135,6 +135,7 @@ def ssim_matlab(
 def check_scene(x1: Tensor, x2: Tensor, enable_scdet: bool, scdet_threshold: float) -> bool:
     if not enable_scdet:
         return False
-    x1 = F.interpolate(x1, (32, 32), mode="bilinear", align_corners=False)
-    x2 = F.interpolate(x2, (32, 32), mode="bilinear", align_corners=False)
-    return ssim_matlab(x1, x2).item() < scdet_threshold
+    # deepcopy x1 and x2
+    _x1 = F.interpolate(x1.clone(), (32, 32), mode="bilinear", align_corners=False)
+    _x2 = F.interpolate(x2.clone(), (32, 32), mode="bilinear", align_corners=False)
+    return ssim_matlab(_x1, _x2).item() < scdet_threshold
