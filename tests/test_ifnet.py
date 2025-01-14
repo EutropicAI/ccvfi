@@ -20,6 +20,6 @@ class Test_IFNet:
             out = model.inference_image_list(img_list=[img0, img1])
 
             assert len(out) == 1
-            for img in out:
-                cv2.imwrite(str(ASSETS_PATH / f"test_{k}_out.jpg"), img)
-                assert calculate_image_similarity(eval_img, img)
+            for i in range(len(out)):
+                cv2.imwrite(str(ASSETS_PATH / f"test_{k}_{i}_out.jpg"), out[i])
+                assert calculate_image_similarity(eval_img, out[i])
