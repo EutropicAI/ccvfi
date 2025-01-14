@@ -1,6 +1,4 @@
 import cv2
-import numpy as np
-import torch
 
 from ccvfi import AutoConfig, AutoModel, BaseConfig, ConfigType
 from ccvfi.model import VFIBaseModel
@@ -19,18 +17,8 @@ class Test_DRBA:
             model: VFIBaseModel = AutoModel.from_config(config=cfg, fp16=False, device=get_device())
             print(model.device)
 
-            I0 = torch.from_numpy(img0).permute(2, 0, 1).unsqueeze(0).to(model.device) / 255.0
-            I1 = torch.from_numpy(img1).permute(2, 0, 1).unsqueeze(0).to(model.device) / 255.0
-            I2 = torch.from_numpy(img2).permute(2, 0, 1).unsqueeze(0).to(model.device) / 255.0
-            I0 = I0.unsqueeze(0)
-            I1 = I1.unsqueeze(0)
-            I2 = I2.unsqueeze(0)
-            inp = torch.cat([I0, I1, I2], dim=1)
+            out = model.inference_image_list(img_list=[img0, img1, img2])
 
-            Outputs, _ = model.inference(inp, [-1, -0.5], [0], [0.5, 1], False, False, 1.0, None)
-
-            for i in range(len(Outputs)):
-                out = (Outputs[0, i].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
-                cv2.imwrite(str(ASSETS_PATH / f"test_{k}_out_{i}.jpg"), out)
-
-                assert calculate_image_similarity(eval_imgs[i], out)
+            for i in range(len(out)):
+                cv2.imwrite(str(ASSETS_PATH / f"test_{k}_{i}_out.jpg"), out[i])
+                assert calculate_image_similarity(eval_imgs[i], out[i])
