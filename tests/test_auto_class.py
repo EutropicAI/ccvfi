@@ -21,6 +21,9 @@ def test_auto_class_register() -> None:
 
     @AutoModel.register(name=model_name)
     class TESTMODEL(IFNetModel):
+        def load_model(self) -> Any:
+            return None
+
         def get_cfg(self) -> Any:
             return self.config
 
