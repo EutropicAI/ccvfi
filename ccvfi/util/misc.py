@@ -99,7 +99,7 @@ def ssim_matlab(
     (_, _, height, width) = img1.size()
     if window is None:
         real_size = min(window_size, height, width)
-        window = create_window_3d(real_size, channel=1).to(img1.device)
+        window = create_window_3d(real_size, channel=1).to(img1.device).to(img1.dtype)
         # Channel is set to 1 since we consider color images as volumetric images
 
     img1 = img1.unsqueeze(1)
@@ -136,6 +136,6 @@ def check_scene(x1: Tensor, x2: Tensor, enable_scdet: bool, scdet_threshold: flo
     if not enable_scdet:
         return False
     # deepcopy x1 and x2
-    _x1 = F.interpolate(x1.clone(), (32, 32), mode="bilinear", align_corners=False)
-    _x2 = F.interpolate(x2.clone(), (32, 32), mode="bilinear", align_corners=False)
+    _x1 = F.interpolate(x1[0].clone(), (32, 32), mode="bilinear", align_corners=False)
+    _x2 = F.interpolate(x2[0].clone(), (32, 32), mode="bilinear", align_corners=False)
     return ssim_matlab(_x1, _x2).item() < scdet_threshold
