@@ -133,9 +133,36 @@ def ssim_matlab(
 
 
 def check_scene(x1: Tensor, x2: Tensor, enable_scdet: bool, scdet_threshold: float) -> bool:
+    """
+    Check if the scene is different, based on the SSIM value of the two input tensors.
+
+    Input Tensor can be 3D, 4D, or 5D.
+
+    :param x1: The first input tensor.
+    :param x2: The second input tensor.
+    :param enable_scdet: Whether to enable the scene change detection.
+    :param scdet_threshold: The threshold of the SSIM value.
+    """
+
     if not enable_scdet:
         return False
-    # deepcopy x1 and x2
-    _x1 = F.interpolate(x1[0].clone(), (32, 32), mode="bilinear", align_corners=False)
-    _x2 = F.interpolate(x2[0].clone(), (32, 32), mode="bilinear", align_corners=False)
+    if x1.dim() != x2.dim():
+        raise ValueError("The dimensions of the two input tensors must be the same.")
+    if x1.dim() not in [3, 4, 5]:
+        raise ValueError("The input tensor must be 3D, 4D, or 5D.")
+
+    _x1 = x1.clone()
+    _x2 = x2.clone()
+
+    if _x1.dim() == 3:
+        _x1 = _x1.unsqueeze(0)
+        _x2 = _x2.unsqueeze(0)
+
+    if _x1.dim() == 5:
+        _x1 = _x1.squeeze(0)
+        _x2 = _x2.squeeze(0)
+
+    _x1 = F.interpolate(_x1, (32, 32), mode="bilinear", align_corners=False)
+    _x2 = F.interpolate(_x2, (32, 32), mode="bilinear", align_corners=False)
+
     return ssim_matlab(_x1, _x2).item() < scdet_threshold

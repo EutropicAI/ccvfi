@@ -103,24 +103,29 @@ def test_ssim_matlab() -> None:
     assert 0.0 <= ssim_value.item() <= 1.0
 
 
-def test_check_scene() -> None:
-    # 创建符合要求的输入张量 (N, C, H, W)
-    x1 = torch.randn(1, 1, 3, 64, 64)  # 批次大小 1，通道数 3，高度 64，宽度 64
-    x2 = torch.randn(1, 1, 3, 64, 64)
+class Test_Check_Scene:
+    def test_5d(self) -> None:
+        x1 = torch.randn(1, 1, 3, 64, 64)
+        x2 = torch.randn(1, 1, 3, 64, 64)
 
-    # 测试 enable_scdet 为 False 的情况
-    result = check_scene(x1, x2, enable_scdet=False, scdet_threshold=0.5)
-    assert result is False  # 当 enable_scdet 为 False 时，应返回 False
+        # 测试 enable_scdet 为 False 的情况
+        result = check_scene(x1, x2, enable_scdet=False, scdet_threshold=0.5)
+        assert result is False  # 当 enable_scdet 为 False 时，应返回 False
 
-    # 测试 enable_scdet 为 True 的情况
-    result = check_scene(x1, x2, enable_scdet=True, scdet_threshold=0.5)
-    assert isinstance(result, bool)
+        # 测试 enable_scdet 为 True 的情况
+        result = check_scene(x1, x2, enable_scdet=True, scdet_threshold=0.5)
+        assert isinstance(result, bool)
 
-    # 测试输入张量维度不正确的情况
-    with pytest.raises(ValueError):
-        x1_invalid = torch.randn(1, 3, 64, 64)  # 缺少批次维度
-        check_scene(x1_invalid, x2, enable_scdet=True, scdet_threshold=0.5)
+    def test_4d(self) -> None:
+        x1 = torch.randn(1, 3, 64, 64)
+        x2 = torch.randn(1, 3, 64, 64)
 
-    with pytest.raises(ValueError):
-        x2_invalid = torch.randn(1, 1, 64, 64)  # 缺少通道维度
-        check_scene(x1, x2_invalid, enable_scdet=True, scdet_threshold=0.5)
+        result = check_scene(x1, x2, enable_scdet=True, scdet_threshold=0.5)
+        assert isinstance(result, bool)
+
+    def test_3d(self) -> None:
+        x1 = torch.randn(3, 64, 64)
+        x2 = torch.randn(3, 64, 64)
+
+        result = check_scene(x1, x2, enable_scdet=True, scdet_threshold=0.5)
+        assert isinstance(result, bool)
