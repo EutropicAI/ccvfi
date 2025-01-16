@@ -5,5 +5,5 @@ from enum import Enum
 class ModelType(str, Enum):
     # ------------------------------------- Video Frame Interpolation ----------------------------------------------
 
-    IFNet = "IFNet"
+    RIFE = "RIFE"
     DRBA = "DRBA"
