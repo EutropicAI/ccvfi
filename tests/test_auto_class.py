@@ -1,15 +1,15 @@
 from typing import Any
 
 from ccvfi import AutoConfig, AutoModel
-from ccvfi.config import IFNetConfig
-from ccvfi.model import IFNetModel
+from ccvfi.config import RIFEConfig
+from ccvfi.model import RIFEModel
 
 
 def test_auto_class_register() -> None:
     cfg_name = "TESTCONFIG.pth"
     model_name = "TESTMODEL"
 
-    cfg = IFNetConfig(
+    cfg = RIFEConfig(
         name=cfg_name,
         model=model_name,
         url="https://github.com/routineLife1/ccvfi/releases/download/weights/IFNet_v426_heavy.pkl",
@@ -20,7 +20,7 @@ def test_auto_class_register() -> None:
     AutoConfig.register(cfg)
 
     @AutoModel.register(name=model_name)
-    class TESTMODEL(IFNetModel):
+    class TESTMODEL(RIFEModel):
         def load_model(self) -> Any:
             return None
 

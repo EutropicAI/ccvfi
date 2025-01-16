@@ -12,8 +12,8 @@ from ccvfi.type import ModelType
 from ccvfi.util.misc import de_resize, resize
 
 
-@MODEL_REGISTRY.register(name=ModelType.IFNet)
-class IFNetModel(VFIBaseModel):
+@MODEL_REGISTRY.register(name=ModelType.RIFE)
+class RIFEModel(VFIBaseModel):
     def load_model(self) -> Any:
         state_dict = self.get_state_dict()
 
