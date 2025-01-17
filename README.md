@@ -1,5 +1,11 @@
 # ccvfi
 
+[![codecov](https://codecov.io/gh/TensoRaws/ccvfi/graph/badge.svg?token=VK0BHDUXAI)](https://codecov.io/gh/TensoRaws/ccvfi)
+[![CI-test](https://github.com/TensoRaws/ccvfi/actions/workflows/CI-test.yml/badge.svg)](https://github.com/TensoRaws/ccvfi/actions/workflows/CI-test.yml)
+[![Release-pypi](https://github.com/TensoRaws/ccvfi/actions/workflows/Release.yml/badge.svg)](https://github.com/TensoRaws/ccvfi/actions/workflows/Release.yml)
+[![PyPI version](https://badge.fury.io/py/ccvfi.svg)](https://badge.fury.io/py/ccvfi)
+![GitHub](https://img.shields.io/github/license/TensoRaws/ccvfi)
+
 an inference lib for video frame interpolation with VapourSynth support
 
 ### Install
