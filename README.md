@@ -1,7 +1,5 @@
 # ccvfi
 
-[![CI-test](https://github.com/TensoRaws/ccrestoration/actions/workflows/CI-test.yml/badge.svg)](https://github.com/TensoRaws/ccvfi/actions/workflows/CI-test.yml)
-
 an inference lib for video frame interpolation with VapourSynth support
 
 ### Install
@@ -25,7 +23,6 @@ import cv2
 import numpy as np
 
 from ccvfi import AutoModel, ConfigType, VFIBaseModel
-from ccvfi.util.misc import de_resize, resize
 
 model: VFIBaseModel = AutoModel.from_pretrained(
     pretrained_model_name=ConfigType.RIFE_IFNet_v426_heavy,
@@ -64,11 +61,11 @@ See more examples in the [example](./example) directory, ccvfi can register cust
 
 It still in development, the following models are supported:
 
-- [Architecture](./ccrestoration/type/arch.py)
+- [Architecture](./ccvfi/type/arch.py)
 
-- [Model](./ccrestoration/type/model.py)
+- [Model](./ccvfi/type/model.py)
 
-- [Weight(Config)](./ccrestoration/type/config.py)
+- [Weight(Config)](./ccvfi/type/config.py)
 
 ### Reference
 
