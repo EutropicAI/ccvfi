@@ -93,6 +93,8 @@ class DRBAModel(VFIBaseModel):
         for img in img_list:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img_tensor = transforms.ToTensor()(img).unsqueeze(0).to(self.device)
+            if self.fp16:
+                img_tensor = img_tensor.half()
             img_list_tensor.append(img_tensor)
 
         inp = torch.stack(img_list_tensor, dim=1)
