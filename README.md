@@ -1,8 +1,8 @@
 # ccvfi
 
 [![codecov](https://codecov.io/gh/TensoRaws/ccvfi/graph/badge.svg?token=VK0BHDUXAI)](https://codecov.io/gh/TensoRaws/ccvfi)
-[![CI-test](https://github.com/TensoRaws/ccvfi/actions/workflows/CI-test.yml/badge.svg)](https://github.com/TensoRaws/ccvfi/actions/workflows/CI-test.yml)
-[![Release-pypi](https://github.com/TensoRaws/ccvfi/actions/workflows/Release.yml/badge.svg)](https://github.com/TensoRaws/ccvfi/actions/workflows/Release.yml)
+[![CI-test](https://github.com/EutropicAI/ccvfi/actions/workflows/CI-test.yml/badge.svg)](https://github.com/EutropicAI/ccvfi/actions/workflows/CI-test.yml)
+[![Release-pypi](https://github.com/EutropicAI/ccvfi/actions/workflows/Release.yml/badge.svg)](https://github.com/EutropicAI/ccvfi/actions/workflows/Release.yml)
 [![PyPI version](https://badge.fury.io/py/ccvfi.svg)](https://badge.fury.io/py/ccvfi)
 ![GitHub](https://img.shields.io/github/license/TensoRaws/ccvfi)
 
@@ -85,4 +85,4 @@ It still in development, the following models are supported:
 ### License
 
 This project is licensed under the MIT - see
-the [LICENSE file](https://github.com/TensoRaws/ccvfi/blob/main/LICENSE) for details.
+the [LICENSE file](https://github.com/EutropicAI/ccvfi/blob/main/LICENSE) for details.
