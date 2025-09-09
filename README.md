@@ -68,9 +68,7 @@ See more examples in the [example](./example) directory, ccvfi can register cust
 It still in development, the following models are supported:
 
 - [Architecture](./ccvfi/type/arch.py)
-
 - [Model](./ccvfi/type/model.py)
-
 - [Weight(Config)](./ccvfi/type/config.py)
 
 ### Reference
