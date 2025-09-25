@@ -1,3 +1,6 @@
+> **🚨 Deprecation Notice**  
+> This repository is **no longer maintained**. All features have been integrated and further developed in [cccv](https://github.com/EutropicAI/cccv). Please migrate to the new repository for future updates and support.
+
 # ccvfi
 
 [![codecov](https://codecov.io/gh/EutropicAI/ccvfi/graph/badge.svg?token=VK0BHDUXAI)](https://codecov.io/gh/EutropicAI/ccvfi)
